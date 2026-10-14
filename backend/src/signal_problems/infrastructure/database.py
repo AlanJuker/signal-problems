@@ -1,12 +1,11 @@
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, cast
 
 from sqlalchemy import Boolean, DateTime, Index, Integer, String, create_engine
 from sqlalchemy.dialects import postgresql, sqlite
-from sqlalchemy.engine import CursorResult, Engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
-from sqlalchemy.sql.expression import Executable
+from sqlalchemy.sql.dml import ReturningInsert
 
 from signal_problems.domain.delays import Delay
 
@@ -64,24 +63,32 @@ class SqlDelayRepository:
         self._session = session
 
     def add_new(self, delays: Sequence[Delay]) -> int:
-        """Insert-or-ignore on the fingerprint, in one statement per batch."""
+        """Insert-or-ignore on the fingerprint, in one statement per batch.
+
+        Counts the fingerprints returned by `RETURNING`: `rowcount` is -1 on PostgreSQL when
+        SQLAlchemy splits a multi-row insert into several statements.
+        """
         dialect = self._session.get_bind().dialect.name
         inserted = 0
         for start in range(0, len(delays), self._BATCH):
             rows = [
                 _columns(DelayRecord.from_domain(d)) for d in delays[start : start + self._BATCH]
             ]
-            result = self._session.execute(_insert_ignoring_duplicates(dialect, rows))
-            inserted += cast("CursorResult[Any]", result).rowcount
+            statement = _insert_ignoring_duplicates(dialect, rows)
+            inserted += len(self._session.scalars(statement).all())
         self._session.commit()
         return inserted
 
 
-def _insert_ignoring_duplicates(dialect: str, rows: list[dict[str, object]]) -> Executable:
+def _insert_ignoring_duplicates(
+    dialect: str, rows: list[dict[str, object]]
+) -> ReturningInsert[tuple[str]]:
     if dialect == "postgresql":
-        return postgresql.insert(DelayRecord).values(rows).on_conflict_do_nothing()
+        statement = postgresql.insert(DelayRecord).values(rows).on_conflict_do_nothing()
+        return statement.returning(DelayRecord.fingerprint)
     if dialect == "sqlite":
-        return sqlite.insert(DelayRecord).values(rows).on_conflict_do_nothing()
+        lite = sqlite.insert(DelayRecord).values(rows).on_conflict_do_nothing()
+        return lite.returning(DelayRecord.fingerprint)
     raise ValueError(f"Unsupported database: {dialect}")
 
 
