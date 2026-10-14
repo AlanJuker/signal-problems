@@ -1,4 +1,5 @@
 import argparse
+import json
 from pathlib import Path
 
 import httpx
@@ -18,7 +19,15 @@ def main(argv: list[str] | None = None) -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser("ingest", help="import the TTC subway delay log")
     ingest.add_argument("--csv", type=Path, help="read a saved CSV instead of downloading it")
+    commands.add_parser("openapi", help="print the API's OpenAPI schema (the frontend contract)")
     args = parser.parse_args(argv)
+
+    if args.command == "openapi":
+        from signal_problems.api.app import create_app  # noqa: PLC0415 (only this command needs FastAPI)
+
+        schema = create_app(lambda: Session(make_engine(DATABASE_URL))).openapi()
+        print(json.dumps(schema, indent=2, ensure_ascii=False))
+        return
 
     engine = make_engine(DATABASE_URL)
     try:
