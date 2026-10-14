@@ -1,0 +1,52 @@
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", "backend/src/signal_problems/api/**", ".github/workflows/frontend.yml"]
+  pull_request:
+    paths: ["frontend/**", "backend/src/signal_problems/api/**", ".github/workflows/frontend.yml"]
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint and format
+        run: npm run lint
+      - name: Test
+        run: npm run test:coverage
+      - name: Build
+        run: npm run build
+
+  contract:
+    name: API types match the backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Regenerate the OpenAPI schema and TypeScript types
+        run: npm run api:types
+      - name: Fail if they differ from the committed ones
+        run: git diff --exit-code -- openapi.json src/api/schema.ts
