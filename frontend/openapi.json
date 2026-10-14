@@ -1,0 +1,585 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "signal-problems",
+    "summary": "Toronto subway delays, decoded.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/summary": {
+      "get": {
+        "summary": "Get Summary",
+        "operationId": "get_summary_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lines": {
+      "get": {
+        "summary": "Get Lines",
+        "operationId": "get_lines_lines_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LineOut"
+                  },
+                  "type": "array",
+                  "title": "Response Get Lines Lines Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lines/{line}/heat": {
+      "get": {
+        "summary": "Get Line Heat",
+        "operationId": "get_line_heat_lines__line__heat_get",
+        "parameters": [
+          {
+            "name": "line",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Line"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StationHeatOut"
+                  },
+                  "title": "Response Get Line Heat Lines  Line  Heat Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stations/{station_id}": {
+      "get": {
+        "summary": "Get Station",
+        "operationId": "get_station_stations__station_id__get",
+        "parameters": [
+          {
+            "name": "station_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Station Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationProfileOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown station"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/commute/risk": {
+      "post": {
+        "summary": "Post Commute Risk",
+        "operationId": "post_commute_risk_commute_risk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommuteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommuteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Stations not on that line"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CauseCategory": {
+        "type": "string",
+        "enum": [
+          "equipment",
+          "passengers_and_other",
+          "infrastructure",
+          "security",
+          "operations",
+          "unknown"
+        ],
+        "title": "CauseCategory"
+      },
+      "CauseOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CauseCategory"
+          },
+          "is_signal_problem": {
+            "type": "boolean",
+            "title": "Is Signal Problem"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "description",
+          "category",
+          "is_signal_problem",
+          "count"
+        ],
+        "title": "CauseOut"
+      },
+      "CommuteOut": {
+        "properties": {
+          "stations": {
+            "items": {
+              "$ref": "#/components/schemas/StationOut"
+            },
+            "type": "array",
+            "title": "Stations"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "time",
+            "title": "Window Start"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "time",
+            "title": "Window End"
+          },
+          "days_observed": {
+            "type": "integer",
+            "title": "Days Observed"
+          },
+          "days_hit": {
+            "type": "integer",
+            "title": "Days Hit",
+            "description": "Days with at least one 5+ minute delay on the trip"
+          },
+          "risk": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Risk"
+          },
+          "worst_stations": {
+            "items": {
+              "$ref": "#/components/schemas/StationCountOut"
+            },
+            "type": "array",
+            "title": "Worst Stations"
+          },
+          "top_causes": {
+            "items": {
+              "$ref": "#/components/schemas/CauseOut"
+            },
+            "type": "array",
+            "title": "Top Causes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stations",
+          "window_start",
+          "window_end",
+          "days_observed",
+          "days_hit",
+          "risk",
+          "worst_stations",
+          "top_causes"
+        ],
+        "title": "CommuteOut"
+      },
+      "CommuteRequest": {
+        "properties": {
+          "line": {
+            "$ref": "#/components/schemas/Line"
+          },
+          "origin": {
+            "type": "string",
+            "title": "Origin"
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination"
+          },
+          "weekday": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Weekday",
+            "description": "Monday = 0"
+          },
+          "departure": {
+            "type": "string",
+            "format": "time",
+            "title": "Departure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line",
+          "origin",
+          "destination",
+          "weekday",
+          "departure"
+        ],
+        "title": "CommuteRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Line": {
+        "type": "string",
+        "enum": [
+          "1",
+          "2",
+          "4"
+        ],
+        "title": "Line",
+        "description": "TTC subway lines covered by the delay dataset."
+      },
+      "LineOut": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Line"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "stations": {
+            "items": {
+              "$ref": "#/components/schemas/StationOut"
+            },
+            "type": "array",
+            "title": "Stations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "stations"
+        ],
+        "title": "LineOut"
+      },
+      "StationCountOut": {
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/StationOut"
+          },
+          "delays": {
+            "type": "integer",
+            "title": "Delays"
+          }
+        },
+        "type": "object",
+        "required": [
+          "station",
+          "delays"
+        ],
+        "title": "StationCountOut"
+      },
+      "StationHeatOut": {
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/StationOut"
+          },
+          "incidents": {
+            "type": "integer",
+            "title": "Incidents"
+          },
+          "significant": {
+            "type": "integer",
+            "title": "Significant"
+          },
+          "minutes_lost": {
+            "type": "integer",
+            "title": "Minutes Lost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "station",
+          "incidents",
+          "significant",
+          "minutes_lost"
+        ],
+        "title": "StationHeatOut"
+      },
+      "StationOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/Line"
+            },
+            "type": "array",
+            "title": "Lines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "lines"
+        ],
+        "title": "StationOut"
+      },
+      "StationProfileOut": {
+        "properties": {
+          "station": {
+            "$ref": "#/components/schemas/StationOut"
+          },
+          "incidents": {
+            "type": "integer",
+            "title": "Incidents"
+          },
+          "significant": {
+            "type": "integer",
+            "title": "Significant"
+          },
+          "minutes_lost": {
+            "type": "integer",
+            "title": "Minutes Lost"
+          },
+          "categories": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/CauseCategory"
+            },
+            "type": "object",
+            "title": "Categories"
+          },
+          "top_causes": {
+            "items": {
+              "$ref": "#/components/schemas/CauseOut"
+            },
+            "type": "array",
+            "title": "Top Causes"
+          },
+          "by_weekday_hour": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "By Weekday Hour",
+            "description": "5+ minute delays per [weekday][hour], Monday = 0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "station",
+          "incidents",
+          "significant",
+          "minutes_lost",
+          "categories",
+          "top_causes",
+          "by_weekday_hour"
+        ],
+        "title": "StationProfileOut"
+      },
+      "SummaryOut": {
+        "properties": {
+          "first_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Day"
+          },
+          "last_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Day"
+          },
+          "incidents": {
+            "type": "integer",
+            "title": "Incidents"
+          },
+          "significant": {
+            "type": "integer",
+            "title": "Significant",
+            "description": "Delays of 5 minutes or more"
+          },
+          "signal_problems": {
+            "type": "integer",
+            "title": "Signal Problems",
+            "description": "5+ minute delays caused by signal failures"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_day",
+          "last_day",
+          "incidents",
+          "significant",
+          "signal_problems"
+        ],
+        "title": "SummaryOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
