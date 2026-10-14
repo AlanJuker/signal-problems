@@ -1,0 +1,66 @@
+.commute h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+}
+
+.commute form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.commute label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.commute select,
+.commute input,
+.commute button {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.commute button {
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 600;
+  cursor: pointer;
+}
+.commute button:disabled {
+  opacity: 0.6;
+}
+
+.result {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.risk {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0 0 0.5rem;
+}
+.risk strong {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.fine-print {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}

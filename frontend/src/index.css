@@ -1,0 +1,126 @@
+:root {
+  --font-display: "Barlow Semi Condensed", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  --font-label: "Barlow Semi Condensed", system-ui, sans-serif;
+
+  /* TTC line colours */
+  --line-1: #f8c300;
+  --line-2: #00923f;
+  --line-4: #a21a68;
+
+  --bg: #f4f2ee;
+  --surface: #ffffff;
+  --ink: #16181d;
+  --ink-soft: #5b6070;
+  --rule: #e3e0da;
+  --rule-strong: #c9c5bd;
+  --accent: #c62828;
+  --heat-low: #fbf3ea;
+  --heat-high: #b71c1c;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317;
+    --surface: #1b1e24;
+    --ink: #eef0f3;
+    --ink-soft: #a3a9b6;
+    --rule: #2c3038;
+    --rule-strong: #434955;
+    --accent: #ff6b5e;
+    --heat-low: #2a2d33;
+    --heat-high: #ff5a4a;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+#root {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+a {
+  color: inherit;
+}
+
+.hero {
+  max-width: 46rem;
+  margin-bottom: 2rem;
+}
+.kicker {
+  margin: 0;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.hero h1 {
+  margin: 0.25rem 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 1.05;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+.answer {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.answer strong {
+  color: var(--accent);
+}
+
+.map-card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.legend {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 52rem) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+footer {
+  margin-top: 3rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

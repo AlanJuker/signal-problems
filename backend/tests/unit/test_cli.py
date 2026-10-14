@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -29,3 +30,10 @@ def test_missing_file(database_url: str, monkeypatch: pytest.MonkeyPatch, tmp_pa
     monkeypatch.setattr(cli, "DATABASE_URL", database_url)
     with pytest.raises(FileNotFoundError):
         cli.main(["ingest", "--csv", str(tmp_path / "missing.csv")])
+
+
+def test_openapi_command_prints_the_schema(capsys: pytest.CaptureFixture[str]) -> None:
+    cli.main(["openapi"])
+    schema = json.loads(capsys.readouterr().out)
+    assert schema["info"]["title"] == "signal-problems"
+    assert "/commute/risk" in schema["paths"]
