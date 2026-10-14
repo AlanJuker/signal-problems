@@ -1,0 +1,79 @@
+.map-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.subway-map {
+  display: block;
+  min-width: 760px;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-label);
+}
+
+.route {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.route-1 {
+  stroke: var(--line-1);
+}
+.route-2 {
+  stroke: var(--line-2);
+}
+.route-4 {
+  stroke: var(--line-4);
+}
+
+.station {
+  cursor: pointer;
+  outline: none;
+}
+
+.hit-area {
+  fill: transparent;
+}
+
+.marker {
+  /* Darker and bigger means more 5+ minute delays; the number is in the label and tooltip. */
+  fill: color-mix(in oklab, var(--heat-high) var(--heat), var(--heat-low));
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  transition: r 200ms ease;
+}
+
+.marker.interchange {
+  stroke-width: 3;
+}
+
+.label {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
+.station:hover .marker,
+.station[data-selected] .marker {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.station:focus-visible .hit-area {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+}
+
+.station[data-selected] .label {
+  font-weight: 700;
+}
+
+.station[data-dimmed] {
+  opacity: 0.25;
+}
