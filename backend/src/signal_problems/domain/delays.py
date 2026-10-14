@@ -12,7 +12,7 @@ SIGNIFICANT_DELAY_MINUTES = 5
 class Delay:
     """One incident from the TTC delay log."""
 
-    source_id: int
+    fingerprint: str  # identifies the logged row across monthly re-publications of the file
     occurred_at: datetime
     location: ResolvedLocation
     line: Line | None  # None when the log doesn't say and the location is on several lines
