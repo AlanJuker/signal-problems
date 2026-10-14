@@ -1,0 +1,37 @@
+[project]
+name = "signal-problems"
+version = "0.1.0"
+description = "Toronto subway delays, decoded."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18",
+  "pytest>=8.4",
+  "pytest-cov>=7.0",
+  "ruff>=0.14",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PL", "PT"]
+ignore = ["PLR2004"]
+# Official TTC names use en dashes ("Yonge–University"); operators type curly apostrophes.
+allowed-confusables = ["–", "’"]
+
+[tool.mypy]
+strict = true
+packages = ["signal_problems"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --cov=signal_problems --cov-report=term-missing --cov-fail-under=90"

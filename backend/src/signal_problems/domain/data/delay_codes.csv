@@ -1,0 +1,201 @@
+code,description
+ERAC,Air Conditioning
+ERBO,Body
+ERCD,Consequential Delay (2nd Delay Same Fault)
+ERCO,Couplers
+ERDB,Disc Brakes
+ERDO,Door Problems - Faulty Equipment
+ERHV,High Voltage
+ERLT,Lighting System
+ERLV,Low Voltage
+ERME,RC&S Maintenance Error - (Human)
+ERNEA,No Equipment Available
+ERNT,Equipment - No Trouble Found
+ERO,RC&S Other
+ERPR,Propulsion System
+ERRA,Radio
+ERTB,Track Brakes
+ERTC,Train Control - VOBC
+ERTL,Trainline System
+ERTR,Trucks
+ERVE,Vehicle
+ERWA,Warning Alarm Systems
+ERWS,Wind Shield
+EUAC,Air Conditioning
+EUAL,Alternating Current
+EUATC,ATC RC&S Equipment
+EUBK,Brakes
+EUBO,Body
+EUCA,Compressed Air
+EUCD,Consequential Delay (2nd Delay Same Fault)
+EUCH,Chopper Control
+EUCO,Couplers
+EUDO,Door Problems - Faulty Equipment
+EUECD,ECD / Line Mechanic Related Prob.
+EUHV,High Voltage
+EULT,Lighting System
+EULV,Low Voltage
+EUME,RC&S Maintenance Error - (Human)
+EUNEA,No Equipment Available
+EUNT,Equipment - No Trouble Found
+EUO,RC&S Other
+EUOE,Rail Cars & Shops Opr. Error
+EUOPO,OPTO RC&S Non-Train Door Monitoring
+EUPI,Propulsion System
+EUSC,Speed Control Equipment
+EUTL,Trainline System
+EUTM,Traction Motors
+EUTR,Trucks
+EUTRD,TR Cab Doors
+EUVA,Warning Alarm Systems
+EUVE,Work Vehicle
+EUYRD,Yard/Carhouse Related Problems
+MRCL,Divisional Clerk Related
+MRD,Door Problems - Passenger Related
+MRDD,Door Problems - Debris Related
+MREC,Misc. Engineering & Construction Related Problems
+MRESA,No Operator Immediately Available
+MRFS,Fire/Smoke Plan B - Source External to TTC
+MRIE,Injured Employee
+MRLD,Labour Dispute - Subway
+MRNOA,No Operator Immediately Available - Not E.S.A. Related
+MRO,Miscellaneous Other
+MRPAA,Passenger Assistance Alarm Activated - No Trouble Found
+MRPLA,Fire/Smoke Plan A
+MRPLB,Fire/Smoke Plan B
+MRPLC,Fire/Smoke Plan C
+MRPR1,Priority One - Train in Contact With Person
+MRSAN,Unsanitary Vehicle
+MRSTM,Scheduled Track Maintenance
+MRTO,Timeout
+MRUI,Injured or ill Customer (On Train) - Transported
+MRUIR,Injured or ill Customer (On Train) - Medical Aid Refused
+MRWEA,Weather Reports / Related Delays
+MUATC,ATC Project
+MUCL,Divisional Clerk Related
+MUD,Door Problems - Passenger Related
+MUDD,Door Problems - Debris Related
+MUEC,Misc. Engineering & Construction Related Problems
+MUESA,No Operator Immediately Available
+MUFM,Force Majeure
+MUFS,Fire/Smoke Plan B - Source External to TTC
+MUGD,Miscellaneous General Delays
+MUI,Injured or ill Customer (On Train) - Transported
+MUIE,Injured Employee
+MUIR,Injured or ill Customer (On Train) - Medical Aid Refused
+MUIRS,Injured or ill Customer (In Station) - Medical Aid Refused
+MUIS,Injured or ill Customer (In Station) - Transported
+MULD,Labour Dispute - Subway
+MUNOA,No Operator Immediately Available - Not E.S.A. Related
+MUO,Miscellaneous Other
+MUODC,Overhead Door Contact
+MUPAA,Passenger Assistance Alarm Activated - No Trouble Found
+MUPLA,Fire/Smoke Plan A
+MUPLB,Fire/Smoke Plan B - Source TTC
+MUPLC,Fire/Smoke Plan C
+MUPR1,Priority One - Train in Contact With Person
+MUSAN,Unsanitary Vehicle
+MUSC,Miscellaneous Speed Control
+MUTD,Training Department Related Delays
+MUTO,Misc. Transportation Other - Employee Non-Chargeable
+MUWEA,Weather Reports / Related Delays
+MUWR,Work Refusal
+PREL,Escalator/Elevator Incident
+PRO,Other
+PRS,VCC/RCIU/CCR
+PRSA,Axle Counter Related
+PRSL,Loop Related Failures
+PRSO,Signals Other
+PRSP,Signals Power Supply Related
+PRST,Station Stairway Incident
+PRSW,Switch Related
+PRTST,Signals - Train Stops
+PRW,Rail Defect/Fastenings/Power Rail
+PUATC,ATC Signals Other
+PUCBI,Central Logic Controller Failure
+PUCSC,Signal Control Problem - Signals
+PUCSS,Central Office Signalling System
+PUDCS,Data Communications System Failure
+PUMEL,Escalator/Elevator Incident
+PUMO,Station Other
+PUMST,Station Stairway Incident
+PUOPO,OPTO (COMMS) Train Door Monitoring
+PUSAC,Signals Axle Counter Block Failure
+PUSBE,Beacon Failure
+PUSCA,SCADA Related Problems
+PUSCR,Subway Car Radio Fault
+PUSEA,EAS Failure
+PUSI,Signals or Related Components Failure
+PUSIO,Smart IO Failure
+PUSIS,Signals Track Weather Related
+PUSLC,Signals Line Countroller Failure
+PUSNT,Signal Problem - No Trouble
+PUSO,S/E/C Department Other
+PUSRA,Subway Radio System Fault
+PUSSW,Track Switch Failure - Signal Related Problem
+PUSTC,Signals - Track Circuit Problems
+PUSTP,Traction Power or Related Components Failure
+PUSTS,Signals - Train Stops
+PUSWZ,Work Zone Problems - Signals
+PUSZC,Signals Zone Countroller Failure
+PUTCD,T & S Contractor Problems
+PUTD,Track Level Debris - Controllable
+PUTDN,Debris At Track Level - Uncontrollable
+PUTIJ,Insulated Joint Related Problem
+PUTIS,Ice / Snow Related Problems
+PUTNT,T&S Related Problem - NTF
+PUTO,T&S Other
+PUTOE,T & S Operator Related Problems
+PUTR,Rail Related Problem
+PUTS,Structure Related Problem
+PUTSC,Signal Control Problem - Track
+PUTSM,Track Switch Failure - Track Related Problem
+PUTTC,Track Circuit Problems - Re: Defective Bolts/Bonding
+PUTTP,Traction Power Rail Related
+PUTWZ,Work Zone Problems - Track
+SRAE,Assault / Employee Involved
+SRAP,Assault / Patron Involved
+SRBT,Bomb Threat
+SRCOL,Collector Booth Alarm Activated
+SRDP,Disorderly Patron
+SREAS,Emergency Alarm Station Activation
+SRO,Passenger Other
+SRSA,Sexual Assault
+SRSP,Suspicious Package
+SRUT,Unauthorized at Track Level
+SUAE,Assault / Employee Involved
+SUAP,Assault / Patron Involved
+SUBT,Bomb Threat
+SUCOL,Collector Booth Alarm Activated
+SUDP,Disorderly Patron
+SUEAS,Emergency Alarm Station Activation
+SUG,Graffiti / Scratchiti
+SUO,Passenger Other
+SUPOL,Held By Polce - Non-TTC Related
+SUROB,Robbery
+SUSA,Sexual Assault
+SUSP,Suspicious Package
+SUUT,Unauthorized at Track Level
+TRDOE,Doors Open in Error
+TRNIP,Operator Not In Position
+TRNOA,No Operator Immediately Available
+TRO,Transportation Department - Other
+TRSET,Train Controls Improperly Shut Down
+TRST,Storm Trains
+TRTC,Transit Control Related Problems
+TUATC,ATC Operator Related
+TUCC,Transit Control Related Problems
+TUDOE,Doors Open in Error
+TUKEY,Two Drum Switch Keys Activated
+TUML,Mainline Storage
+TUMVS,Operator Violated Signal
+TUNIP,Operator Not In Position
+TUNOA,No Operator Immediately Available
+TUO,Transportation Department - Other
+TUOPO,OPTO Operator Related
+TUOS,Operator Overshot Platform
+TUS,Crew Unable to Maintain Schedule
+TUSC,Operator Overspeeding
+TUSET,Train Controls Improperly Shut Down
+TUST,Storm Trains
+TUSUP,Supervisory Error
