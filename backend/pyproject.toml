@@ -6,9 +6,11 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16",
+    "fastapi>=0.120",
     "httpx>=0.28",
     "psycopg[binary]>=3.2",
     "sqlalchemy>=2.0",
+    "uvicorn[standard]>=0.38",
 ]
 
 [project.scripts]
@@ -43,3 +45,8 @@ packages = ["signal_problems"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers --cov=signal_problems --cov-report=term-missing --cov-fail-under=90"
+filterwarnings = [
+  "error",
+  # FastAPI's TestClient still imports httpx through Starlette's deprecated path.
+  "ignore:Using `httpx` with `starlette.testclient`",
+]

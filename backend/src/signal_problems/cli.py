@@ -20,9 +20,16 @@ def main(argv: list[str] | None = None) -> None:
     ingest.add_argument("--csv", type=Path, help="read a saved CSV instead of downloading it")
     args = parser.parse_args(argv)
 
-    with httpx.Client(timeout=60) as client, Session(make_engine(DATABASE_URL)) as session:
-        source: DelaySource = CsvFileSource(args.csv) if args.csv else TorontoOpenDataSource(client)
-        report = IngestDelays(source, SqlDelayRepository(session), StationResolver(TTC_SUBWAY))()
+    engine = make_engine(DATABASE_URL)
+    try:
+        with httpx.Client(timeout=60) as client, Session(engine) as session:
+            source: DelaySource = (
+                CsvFileSource(args.csv) if args.csv else TorontoOpenDataSource(client)
+            )
+            resolver = StationResolver(TTC_SUBWAY)
+            report = IngestDelays(source, SqlDelayRepository(session), resolver)()
+    finally:
+        engine.dispose()  # close pooled connections instead of leaving them to the GC
     print(format_report(report))
 
 
