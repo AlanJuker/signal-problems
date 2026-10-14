@@ -31,7 +31,7 @@ def test_infer_line(raw_station: str, raw_line: str, line: Line | None) -> None:
 @pytest.mark.parametrize(("minutes", "significant"), [(0, False), (4, False), (5, True)])
 def test_significant_delay(minutes: int, significant: bool) -> None:
     delay = Delay(
-        source_id=1,
+        fingerprint="abc",
         occurred_at=datetime(2026, 8, 31, 8, 12),
         location=resolver.resolve("UNION STATION"),
         line=Line.YONGE_UNIVERSITY,

@@ -14,6 +14,19 @@ defaults:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: signal
+          POSTGRES_PASSWORD: signal
+          POSTGRES_DB: signal_problems_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U signal"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -25,5 +38,7 @@ jobs:
         run: uv run ruff check . && uv run ruff format --check .
       - name: Type check
         run: uv run mypy
-      - name: Test
+      - name: Test (integration tests against PostgreSQL)
         run: uv run pytest
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://signal:signal@localhost:5432/signal_problems_test

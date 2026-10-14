@@ -4,7 +4,15 @@ version = "0.1.0"
 description = "Toronto subway delays, decoded."
 license = "MIT"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "alembic>=1.16",
+    "httpx>=0.28",
+    "psycopg[binary]>=3.2",
+    "sqlalchemy>=2.0",
+]
+
+[project.scripts]
+signal-problems = "signal_problems.cli:main"
 
 [dependency-groups]
 dev = [
