@@ -1,0 +1,157 @@
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1.25rem;
+  min-height: 12rem;
+}
+
+.panel-empty {
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.panel header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.panel h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+}
+
+.panel h3 {
+  margin: 1.4rem 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.line-badges {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.badge-1 {
+  background: var(--line-1);
+  color: #1a1a1a;
+}
+.badge-2 {
+  background: var(--line-2);
+  color: #fff;
+}
+.badge-4 {
+  background: var(--line-4);
+  color: #fff;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+.stats dt {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+.stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.bars,
+.causes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.bars li {
+  display: grid;
+  grid-template-columns: 11rem 1fr 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+.bar {
+  height: 0.55rem;
+  border-radius: 3px;
+  background: var(--rule);
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.causes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tag {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.week-hour {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.7rem;
+  width: 100%;
+  table-layout: fixed;
+}
+.week-hour th {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.week-hour th[scope="row"] {
+  width: 2.2rem;
+  text-align: left;
+}
+.week-hour td {
+  height: 0.9rem;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--heat-high) var(--heat), var(--heat-low));
+}
+.week-hour abbr {
+  text-decoration: none;
+}
+
+@media (max-width: 30rem) {
+  .bars li {
+    grid-template-columns: 8rem 1fr 2.5rem;
+  }
+}
