@@ -1,0 +1,32 @@
+name: Compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/compose.yml"
+
+jobs:
+  smoke-test:
+    name: Full stack starts and serves data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start
+        run: docker compose up --build --detach --wait
+      - name: Ingest the test fixture
+        run: |
+          docker compose cp backend/tests/fixtures/delays_sample.csv api:/tmp/sample.csv
+          docker compose exec -T api signal-problems ingest --csv /tmp/sample.csv
+      - name: API answers through the web server
+        run: |
+          curl --fail --silent http://localhost:8080/api/summary | tee /dev/stderr | grep -q '"incidents":5'
+          curl --fail --silent http://localhost:8080/ | grep -q '<div id="root">'
+          curl --fail --silent "http://localhost:8080/?station=union" | grep -q '<div id="root">'
+      - name: Logs
+        if: failure()
+        run: docker compose logs
