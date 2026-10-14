@@ -1,13 +1,25 @@
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, create_engine
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    create_engine,
+    func,
+    or_,
+    select,
+)
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from sqlalchemy.sql.dml import ReturningInsert
 
-from signal_problems.domain.delays import Delay
+from signal_problems.application.queries import DelayFact
+from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES, Delay
+from signal_problems.domain.lines import Line
 
 
 class Base(DeclarativeBase):
@@ -94,3 +106,46 @@ def _insert_ignoring_duplicates(
 
 def _columns(record: DelayRecord) -> dict[str, object]:
     return {c.key: getattr(record, c.key) for c in DelayRecord.__table__.columns}
+
+
+class SqlDelayQueries:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def coverage(self) -> tuple[date, date] | None:
+        first, last = self._session.execute(
+            select(func.min(DelayRecord.occurred_at), func.max(DelayRecord.occurred_at))
+        ).one()
+        return (first.date(), last.date()) if first and last else None
+
+    def at_stations(self, station_ids: Sequence[str], line: Line | None = None) -> list[DelayFact]:
+        query = select(
+            DelayRecord.occurred_at,
+            DelayRecord.station_id,
+            DelayRecord.segment_end_id,
+            DelayRecord.line,
+            DelayRecord.cause_code,
+            DelayRecord.minutes,
+        ).where(
+            or_(
+                DelayRecord.station_id.in_(station_ids),
+                DelayRecord.segment_end_id.in_(station_ids),
+            )
+        )
+        if line is not None:
+            query = query.where(or_(DelayRecord.line == line.value, DelayRecord.line.is_(None)))
+        return [
+            DelayFact(at, station, segment_end, Line(raw_line) if raw_line else None, code, minutes)
+            for at, station, segment_end, raw_line, code, minutes in self._session.execute(query)
+        ]
+
+    def totals(self) -> tuple[int, int, int]:
+        significant = DelayRecord.minutes >= SIGNIFICANT_DELAY_MINUTES
+        incidents, significant_count, signal = self._session.execute(
+            select(
+                func.count(),
+                func.count().filter(significant),
+                func.count().filter(significant, DelayRecord.is_signal_problem),
+            ).select_from(DelayRecord)
+        ).one()
+        return incidents, significant_count, signal
