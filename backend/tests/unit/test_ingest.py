@@ -79,6 +79,16 @@ def test_counts_duplicates_malformed_and_unresolved() -> None:
     assert report.resolution_rate == 2 / 3
 
 
+def test_skips_line_3_rows() -> None:
+    repository = InMemoryRepository()
+    rows = [ROW, replace(ROW, station="KENNEDY SRT STATION", line="SRT")]
+    report = ingest(rows, repository)
+
+    assert report.scarborough_rt == 1
+    assert report.stored == 1
+    assert report.resolution_rate == 1.0
+
+
 def test_empty_source() -> None:
     report = ingest([], InMemoryRepository())
     assert report.stored == 0
