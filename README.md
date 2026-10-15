@@ -23,6 +23,9 @@ From the 45,475 incidents logged between January 2025 and August 2026:
   overnight track work running into opening time.
 - **Kipling → Bloor-Yonge on Friday at 5:30 p.m.** hit a 5+ minute delay on 24 of 87 Fridays (28%).
   Bloor-Yonge → Union on Monday at 8:15 a.m. did on only 4 of 87 Mondays (4.6%).
+- **It's getting worse on that Friday trip:** across 2014–2026 it was hit on 77 of 661 Fridays (11.6%), less
+  than half the recent rate. Over the whole history, signal failures account for 3.6% of the 44,189 delays of
+  5+ minutes.
 
 ## Why this is harder than it looks
 
@@ -103,7 +106,8 @@ With Docker:
 
 ```bash
 make up        # PostgreSQL, API and web app → http://localhost:8080
-make ingest    # download the delay log from Toronto Open Data (~5 s)
+make ingest    # download the current delay log from Toronto Open Data (~5 s)
+make ingest-history   # add 2014–2024 as well: 268,000 rows (~40 s)
 ```
 
 API docs are at http://localhost:8000/docs.
@@ -114,7 +118,7 @@ Without Docker (SQLite):
 cd backend
 uv sync
 uv run alembic upgrade head
-uv run signal-problems ingest
+uv run signal-problems ingest            # add --history for 2014–2024
 uv run uvicorn signal_problems.api.app:app --reload
 
 cd ../frontend
@@ -159,7 +163,8 @@ docs/adr/            # architecture decision records
 - [x] Station resolver, ingestion, API, web app, Docker Compose
 - [ ] Commute delay model (gradient boosting on hour, weekday, station and recent incidents), evaluated against
       the historical baseline
-- [ ] Historical data back to 2014 (published as yearly XLSX files)
+- [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
+- [ ] Choose the period the commute check is based on
 - [ ] Bus and streetcar delay logs
 - [ ] Deployment
 
