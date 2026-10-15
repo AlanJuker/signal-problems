@@ -104,6 +104,7 @@ ALIASES: dict[str, str] = {
     "BLOOR": "bloor-yonge",  # Line 1 platform
     "YONGE": "bloor-yonge",  # Line 2 platform ("YONGE BD STATION")
     "SHEPPARD": "sheppard-yonge",
+    "YONGE SHEP": "sheppard-yonge",
     "YONGE AND BLOOR": "bloor-yonge",
     "NORTH YORK CTR": "north-york-centre",
     "NORTH YORK CENTER": "north-york-centre",

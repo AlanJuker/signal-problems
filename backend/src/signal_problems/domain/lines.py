@@ -1,3 +1,4 @@
+import re
 from enum import StrEnum
 
 
@@ -19,8 +20,19 @@ _DISPLAY_NAMES = {
     Line.SHEPPARD: "Line 4 Sheppard",
 }
 
-# Codes operators type in the `Line` column, including the older "YUS" (Yonge–University–Spadina).
-_LINE_CODES = {
+# How operators write each line in the free-text `Line` column: "YU", "YUS" (the older
+# Yonge–University–Spadina), "B/D", "BD LINE 2", "SHEP", "YU & BD", "YU\BD"…
+_LINE_COLUMN = {
+    Line.YONGE_UNIVERSITY: re.compile(r"\bYUS?\b|YONGE[- ]*UNIVERSITY|\bLINE ?1\b"),
+    Line.BLOOR_DANFORTH: re.compile(r"\bB/?D\b|BLOOR[- ]*DANFORTH|\bLINE ?2\b"),
+    Line.SHEPPARD: re.compile(r"\bSHP\b|\bSHEP\b|\bLINE ?4\b"),
+}
+# Line 3 Scarborough, closed in 2023 and out of scope.
+_SCARBOROUGH_RT = re.compile(r"\bS?RT\b")
+
+# Line codes operators append to station names ("KENNEDY BD STATION", "ST GEORGE YUS STATION").
+# Stricter than the column: "SHEP" in "YONGE SHEP STATION" is part of the name.
+_NAME_CODES = {
     "YU": Line.YONGE_UNIVERSITY,
     "YUS": Line.YONGE_UNIVERSITY,
     "BD": Line.BLOOR_DANFORTH,
@@ -29,9 +41,16 @@ _LINE_CODES = {
 
 
 def parse_lines(raw: str) -> frozenset[Line]:
-    """Parse the free-text `Line` column ("YU", "YU/BD", "BD/ YUS", …) into lines.
+    """Lines named in the free-text `Line` column. Bus routes and unknown values give none."""
+    text = raw.upper()
+    return frozenset(line for line, pattern in _LINE_COLUMN.items() if pattern.search(text))
 
-    Unknown tokens (e.g. "SRT", the Line 3 that closed in 2023) are ignored.
-    """
-    tokens = raw.upper().replace(" ", "").replace("-", "/").split("/")
-    return frozenset(_LINE_CODES[token] for token in tokens if token in _LINE_CODES)
+
+def is_scarborough_rt_only(raw: str) -> bool:
+    """The `Line` column names Line 3 and none of the lines covered here."""
+    return bool(_SCARBOROUGH_RT.search(raw.upper())) and not parse_lines(raw)
+
+
+def line_code(token: str) -> Line | None:
+    """The line a station-name token like "BD" or "YUS" stands for."""
+    return _NAME_CODES.get(token)
