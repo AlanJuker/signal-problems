@@ -37,3 +37,21 @@ def test_openapi_command_prints_the_schema(capsys: pytest.CaptureFixture[str]) -
     schema = json.loads(capsys.readouterr().out)
     assert schema["info"]["title"] == "signal-problems"
     assert "/commute/risk" in schema["paths"]
+
+
+def test_history_flag_is_passed_to_the_source(
+    database_url: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created: list[bool] = []
+
+    class FakeSource:
+        def __init__(self, _client: object, *, include_history: bool) -> None:
+            created.append(include_history)
+
+        def fetch(self) -> list[object]:
+            return []
+
+    monkeypatch.setattr(cli, "DATABASE_URL", database_url)
+    monkeypatch.setattr(cli, "TorontoOpenDataSource", FakeSource)
+    cli.main(["ingest", "--history"])
+    assert created == [True]

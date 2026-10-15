@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from enum import StrEnum
 
-from signal_problems.domain.lines import Line, parse_lines
+from signal_problems.domain.lines import Line, line_code, parse_lines
 from signal_problems.domain.stations import ALIASES, Station, StationRegistry
 
 
@@ -53,6 +53,12 @@ _FACILITY_WORDS = {
     "TRACK",
     "TERMINAL",
     "STRUC",
+    "SHOPS",
+    "COMPLEX",
+    "GARAGE",
+    "BUILDUP",
+    "MIGRATION",  # points where trains cross between lines
+    "LOWER",  # Lower Bay, the unused platform under Bay station
 }
 _LINE_WIDE_WORDS = {
     "LINE",
@@ -93,8 +99,8 @@ def normalize(raw: str) -> tuple[str, frozenset[Line]]:
         if token in _STATION_WORDS:
             tokens = tokens[:i]
             break
-    hints = parse_lines("/".join(tokens))
-    name = " ".join(t for t in tokens if not parse_lines(t))
+    hints = frozenset(line for t in tokens if (line := line_code(t)))
+    name = " ".join(t for t in tokens if not line_code(t))
     return name, hints
 
 

@@ -1,4 +1,4 @@
-.PHONY: up down ingest check check-backend check-frontend api-types
+.PHONY: up down ingest ingest-history check check-backend check-frontend api-types
 
 up: ## Start PostgreSQL, the API and the web app on http://localhost:8080
 	docker compose up --build -d
@@ -8,6 +8,9 @@ down:
 
 ingest: ## Download the TTC delay log and load it into the database
 	docker compose exec api signal-problems ingest
+
+ingest-history: ## Also load 2014–2024 (about 268,000 rows)
+	docker compose exec api signal-problems ingest --history
 
 check: check-backend check-frontend ## Everything CI runs
 

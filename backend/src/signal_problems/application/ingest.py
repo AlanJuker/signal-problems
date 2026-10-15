@@ -5,12 +5,14 @@ from datetime import datetime
 from signal_problems.application.ports import DelayRepository, DelaySource, RawDelayRow
 from signal_problems.domain.causes import cause_for
 from signal_problems.domain.delays import Delay, infer_line
+from signal_problems.domain.lines import is_scarborough_rt_only
 from signal_problems.domain.resolver import LocationKind, StationResolver
 
 
 @dataclass
 class IngestReport:
     rows_read: int = 0
+    scarborough_rt: int = 0  # Line 3, closed in 2023: skipped
     malformed: int = 0
     duplicates: int = 0  # identical rows logged more than once
     already_stored: int = 0
@@ -20,8 +22,8 @@ class IngestReport:
 
     @property
     def resolution_rate(self) -> float:
-        """Share of parsed rows that resolved to a known kind of location."""
-        parsed = self.rows_read - self.malformed
+        """Share of parsed subway rows that resolved to a known kind of location."""
+        parsed = self.rows_read - self.scarborough_rt - self.malformed
         return (parsed - self.by_kind[LocationKind.UNRESOLVED]) / parsed if parsed else 0.0
 
 
@@ -52,6 +54,9 @@ class IngestDelays:
         delays: dict[str, Delay] = {}
         for row in self._source.fetch():
             report.rows_read += 1
+            if is_scarborough_rt_only(row.line):
+                report.scarborough_rt += 1
+                continue
             try:
                 delay = to_delay(row, self._resolver)
             except ValueError:

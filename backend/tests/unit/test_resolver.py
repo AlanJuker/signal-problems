@@ -34,6 +34,7 @@ def test_normalize(raw: str, expected: tuple[str, set[Line]]) -> None:
         ("EGLINTON WEST STATION", "cedarvale"),
         ("CEDARVALE YU STATION", "cedarvale"),
         ("VMC STATION", "vaughan-metropolitan-centre"),
+        ("YONGE SHEP STATION", "sheppard-yonge"),
         # Cut off by the 22-character limit
         ("PIONEER VILLAGE STATIO", "pioneer-village"),
         ("NORTH YORK CTR STATION", "north-york-centre"),
@@ -78,6 +79,9 @@ def test_resolves_segments(raw: str, ends: tuple[str, str]) -> None:
         ("GREENWOOD YARD", LocationKind.FACILITY),
         ("WILSON CAR HOUSE", LocationKind.FACILITY),
         ("TEDDINGTON EE", LocationKind.FACILITY),
+        ("GREENWOOD SHOPS", LocationKind.FACILITY),
+        ("EGLINTON MIGRATION", LocationKind.FACILITY),
+        ("BAY LOWER", LocationKind.FACILITY),
         ("LINE 1 YONGE UNIVERSIT", LocationKind.LINE_WIDE),
         ("YONGE-UNIVERSITY AND B", LocationKind.LINE_WIDE),
         ("BLOOR DANFORTH SUBWAY", LocationKind.LINE_WIDE),

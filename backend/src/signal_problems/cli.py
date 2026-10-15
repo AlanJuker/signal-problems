@@ -19,6 +19,9 @@ def main(argv: list[str] | None = None) -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser("ingest", help="import the TTC subway delay log")
     ingest.add_argument("--csv", type=Path, help="read a saved CSV instead of downloading it")
+    ingest.add_argument(
+        "--history", action="store_true", help="also import 2014–2024 (about 222,000 rows)"
+    )
     commands.add_parser("openapi", help="print the API's OpenAPI schema (the frontend contract)")
     args = parser.parse_args(argv)
 
@@ -33,7 +36,9 @@ def main(argv: list[str] | None = None) -> None:
     try:
         with httpx.Client(timeout=60) as client, Session(engine) as session:
             source: DelaySource = (
-                CsvFileSource(args.csv) if args.csv else TorontoOpenDataSource(client)
+                CsvFileSource(args.csv)
+                if args.csv
+                else TorontoOpenDataSource(client, include_history=args.history)
             )
             resolver = StationResolver(TTC_SUBWAY)
             report = IngestDelays(source, SqlDelayRepository(session), resolver)()
@@ -45,6 +50,7 @@ def main(argv: list[str] | None = None) -> None:
 def format_report(report: IngestReport) -> str:
     lines = [
         f"Rows read:       {report.rows_read:>7,}",
+        f"Line 3 (skipped):{report.scarborough_rt:>8,}",
         f"Stored:          {report.stored:>7,}",
         f"Already stored:  {report.already_stored:>7,}",
         f"Duplicate rows:  {report.duplicates:>7,}",
