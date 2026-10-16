@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from sqlalchemy import (
     Boolean,
@@ -118,7 +118,9 @@ class SqlDelayQueries:
         ).one()
         return (first.date(), last.date()) if first and last else None
 
-    def at_stations(self, station_ids: Sequence[str], line: Line | None = None) -> list[DelayFact]:
+    def at_stations(
+        self, station_ids: Sequence[str], line: Line | None = None, since: date | None = None
+    ) -> list[DelayFact]:
         query = select(
             DelayRecord.occurred_at,
             DelayRecord.station_id,
@@ -134,6 +136,8 @@ class SqlDelayQueries:
         )
         if line is not None:
             query = query.where(or_(DelayRecord.line == line.value, DelayRecord.line.is_(None)))
+        if since is not None:
+            query = query.where(DelayRecord.occurred_at >= datetime.combine(since, time.min))
         return [
             DelayFact(at, station, segment_end, Line(raw_line) if raw_line else None, code, minutes)
             for at, station, segment_end, raw_line, code, minutes in self._session.execute(query)

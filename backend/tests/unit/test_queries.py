@@ -35,12 +35,15 @@ class FakeQueries:
     def coverage(self) -> tuple[date, date] | None:
         return self._coverage
 
-    def at_stations(self, station_ids: Sequence[str], line: Line | None = None) -> list[DelayFact]:
+    def at_stations(
+        self, station_ids: Sequence[str], line: Line | None = None, since: date | None = None
+    ) -> list[DelayFact]:
         return [
             f
             for f in self.facts
             if (f.station_id in station_ids or f.segment_end_id in station_ids)
             and (line is None or f.line in (line, None))
+            and (since is None or f.occurred_at.date() >= since)
         ]
 
     def totals(self) -> tuple[int, int, int]:
@@ -118,3 +121,33 @@ def test_assess_commute_without_data() -> None:
     a = queries.assess_commute(FakeQueries([], None), TTC_SUBWAY, query)
     assert a.risk.share == 0.0
     assert [s.id for s in a.trip.stations] == ["leslie", "bessarion", "bayview"]
+
+
+def test_since_limits_every_query() -> None:
+    old = fact("union", day=datetime(2026, 8, 10))
+    recent = fact("union", day=datetime(2026, 8, 31))
+    fake = FakeQueries([old, recent], FOUR_MONDAYS)
+    since = date(2026, 8, 20)
+
+    heat = queries.line_heat(fake, TTC_SUBWAY, Line.YONGE_UNIVERSITY, since)
+    assert next(h for h in heat if h.station.id == "union").significant == 1
+    assert queries.station_profile(fake, TTC_SUBWAY, "union", since).significant == 1
+
+
+def test_since_starting_mid_week_counts_only_the_days_after_it() -> None:
+    facts = [fact("tmu", day=datetime(2026, 8, 10)), fact("tmu", day=datetime(2026, 8, 24))]
+    # Thursday 2026-08-20: two Mondays left in the data (24th and 31st)
+    query = queries.CommuteQuery(
+        Line.YONGE_UNIVERSITY, "bloor-yonge", "union", 0, time(8, 15), since=date(2026, 8, 20)
+    )
+    a = queries.assess_commute(FakeQueries(facts, FOUR_MONDAYS), TTC_SUBWAY, query)
+
+    assert (a.risk.days_observed, a.risk.days_hit) == (2, 1)
+
+
+def test_since_before_the_data_starts_counts_the_whole_history() -> None:
+    query = queries.CommuteQuery(
+        Line.YONGE_UNIVERSITY, "bloor-yonge", "union", 0, time(8, 15), since=date(2020, 1, 1)
+    )
+    a = queries.assess_commute(FakeQueries([], FOUR_MONDAYS), TTC_SUBWAY, query)
+    assert a.risk.days_observed == 4

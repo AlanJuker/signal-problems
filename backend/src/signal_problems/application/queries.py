@@ -32,8 +32,11 @@ class DelayFact:
 class DelayQueries(Protocol):
     def coverage(self) -> tuple[date, date] | None: ...
 
-    def at_stations(self, station_ids: Sequence[str], line: Line | None = None) -> list[DelayFact]:
-        """Delays at these stations (or on segments touching them), optionally on one line.
+    def at_stations(
+        self, station_ids: Sequence[str], line: Line | None = None, since: date | None = None
+    ) -> list[DelayFact]:
+        """Delays at these stations (or on segments touching them), optionally on one line
+        and from a given day on.
 
         Delays with no recorded line are included: they can't be ruled out.
         """
@@ -80,6 +83,7 @@ class CommuteQuery:
     destination_id: str
     weekday: int  # Monday = 0
     departure: time
+    since: date | None = None  # None: the whole history
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,9 +111,11 @@ def summary(queries: DelayQueries) -> Summary:
     return Summary(first, last, incidents, significant, signal_problems)
 
 
-def line_heat(queries: DelayQueries, registry: StationRegistry, line: Line) -> list[StationHeat]:
+def line_heat(
+    queries: DelayQueries, registry: StationRegistry, line: Line, since: date | None = None
+) -> list[StationHeat]:
     stations = registry.on_line(line)
-    facts = queries.at_stations([s.id for s in stations], line)
+    facts = queries.at_stations([s.id for s in stations], line, since)
     heat = []
     for station in stations:
         here = [f for f in facts if f.station_id == station.id]
@@ -125,12 +131,14 @@ def line_heat(queries: DelayQueries, registry: StationRegistry, line: Line) -> l
 
 
 def station_profile(
-    queries: DelayQueries, registry: StationRegistry, station_id: str
+    queries: DelayQueries, registry: StationRegistry, station_id: str, since: date | None = None
 ) -> StationProfile:
     station = registry.get(station_id)
     if station is None:
         raise StationNotFoundError(station_id)
-    facts = [f for f in queries.at_stations([station_id]) if f.station_id == station_id]
+    facts = [
+        f for f in queries.at_stations([station_id], since=since) if f.station_id == station_id
+    ]
     significant = [f for f in facts if f.is_significant]
     grid = [[0] * 24 for _ in range(7)]
     for fact in significant:
@@ -155,11 +163,10 @@ def assess_commute(
     on_trip = {s.id for s in trip.stations}
     hits = [
         f
-        for f in queries.at_stations(list(on_trip), query.line)
+        for f in queries.at_stations(list(on_trip), query.line, query.since)
         if f.is_significant and trip.affects(f.occurred_at) and _within_trip(f, on_trip)
     ]
-    coverage = queries.coverage()
-    observed = count_weekdays(*coverage, query.weekday) if coverage else 0
+    observed = _weekdays_observed(queries.coverage(), query.weekday, query.since)
     per_station = Counter(f.station_id for f in hits)
     return CommuteAssessment(
         trip=trip,
@@ -172,6 +179,13 @@ def assess_commute(
         ][:3],
         top_causes=_top_causes(hits),
     )
+
+
+def _weekdays_observed(coverage: tuple[date, date] | None, weekday: int, since: date | None) -> int:
+    if coverage is None:
+        return 0
+    first, last = coverage
+    return count_weekdays(max(first, since) if since else first, last, weekday)
 
 
 def _within_trip(fact: DelayFact, on_trip: set[str]) -> bool:

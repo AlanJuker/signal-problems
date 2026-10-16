@@ -1,8 +1,9 @@
 import os
 from collections.abc import Callable, Iterator
+from datetime import date
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -38,6 +39,7 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
             yield SqlDelayQueries(session)
 
     Queries = Annotated[queries.DelayQueries, Depends(get_queries)]
+    Since = Annotated[date | None, Query(description="Only count delays from this day on")]
 
     @app.get("/health", include_in_schema=False)
     def health() -> dict[str, str]:
@@ -66,7 +68,7 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
         ]
 
     @app.get("/lines/{line}/heat")
-    def get_line_heat(line: Line, q: Queries) -> list[StationHeatOut]:
+    def get_line_heat(line: Line, q: Queries, since: Since = None) -> list[StationHeatOut]:
         return [
             StationHeatOut(
                 station=StationOut.of(h.station),
@@ -74,13 +76,13 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
                 significant=h.significant,
                 minutes_lost=h.minutes_lost,
             )
-            for h in queries.line_heat(q, TTC_SUBWAY, line)
+            for h in queries.line_heat(q, TTC_SUBWAY, line, since)
         ]
 
     @app.get("/stations/{station_id}", responses={404: {"description": "Unknown station"}})
-    def get_station(station_id: str, q: Queries) -> StationProfileOut:
+    def get_station(station_id: str, q: Queries, since: Since = None) -> StationProfileOut:
         try:
-            p = queries.station_profile(q, TTC_SUBWAY, station_id)
+            p = queries.station_profile(q, TTC_SUBWAY, station_id, since)
         except queries.StationNotFoundError:
             raise HTTPException(404, f"Unknown station: {station_id}") from None
         return StationProfileOut(
@@ -97,7 +99,7 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
     def post_commute_risk(body: CommuteRequest, q: Queries) -> CommuteOut:
         try:
             query = queries.CommuteQuery(
-                body.line, body.origin, body.destination, body.weekday, body.departure
+                body.line, body.origin, body.destination, body.weekday, body.departure, body.since
             )
             a = queries.assess_commute(q, TTC_SUBWAY, query)
         except ValueError as error:

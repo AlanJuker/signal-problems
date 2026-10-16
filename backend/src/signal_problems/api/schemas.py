@@ -78,6 +78,7 @@ class CommuteRequest(BaseModel):
     destination: str
     weekday: int = Field(ge=0, le=6, description="Monday = 0")
     departure: time
+    since: date | None = Field(default=None, description="Only count days from this one on")
 
 
 class StationCountOut(BaseModel):
