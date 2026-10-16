@@ -1,11 +1,11 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 
 import { App } from "./App";
 import { renderWithQueries } from "./test/render";
-import { server } from "./test/server";
+import { COMMUTE, server } from "./test/server";
 
 describe("App", () => {
   it("answers the headline question from the summary", async () => {
@@ -71,6 +71,37 @@ describe("App", () => {
     expect(screen.queryByText("28%")).not.toBeInTheDocument();
     expect(screen.getByLabelText("From")).toHaveValue("sheppard-yonge");
     expect(screen.getByLabelText("To")).toHaveValue("don-mills");
+  });
+
+  it("bases everything on the chosen period and keeps it in the URL", async () => {
+    const heatSince: Array<string | null> = [];
+    let commuteSince: unknown;
+    server.use(
+      http.get("*/api/lines/1/heat", ({ request }) => {
+        heatSince.push(new URL(request.url).searchParams.get("since"));
+        return HttpResponse.json([]);
+      }),
+      http.post("*/api/commute/risk", async ({ request }) => {
+        commuteSince = ((await request.json()) as { since?: string }).since;
+        return HttpResponse.json(COMMUTE);
+      }),
+    );
+    const user = userEvent.setup();
+    renderWithQueries(<App />);
+
+    expect(await screen.findByRole("radio", { name: "Past 12 months" })).toBeChecked();
+    await waitFor(() => expect(heatSince).toContain("2025-09-01"));
+
+    await user.click(screen.getByRole("radio", { name: "Since 2014" }));
+    await waitFor(() => expect(heatSince).toContain(null));
+    expect(window.location.search).toBe("?period=all");
+
+    await user.click(screen.getByRole("button", { name: "Check" }));
+    await screen.findByText("28%");
+    expect(commuteSince).toBeUndefined();
+
+    await user.click(screen.getByRole("radio", { name: "Past 3 years" }));
+    expect(screen.queryByText("28%")).not.toBeInTheDocument(); // stale result cleared
   });
 
   it("tells the user when the API is down", async () => {

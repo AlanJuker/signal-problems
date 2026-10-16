@@ -5,8 +5,13 @@ import "./StationPanel.css";
 
 const number = new Intl.NumberFormat("en-CA");
 
-export function StationPanel({ stationId }: { stationId: string | null }) {
-  const { data, isPending, isError } = useStation(stationId);
+interface Props {
+  stationId: string | null;
+  since: string | undefined;
+}
+
+export function StationPanel({ stationId, since }: Props) {
+  const { data, isPending, isError } = useStation(stationId, since);
 
   if (stationId === null) {
     return (

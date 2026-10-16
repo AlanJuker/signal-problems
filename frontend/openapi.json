@@ -58,6 +58,25 @@
             "schema": {
               "$ref": "#/components/schemas/Line"
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only count delays from this day on",
+              "title": "Since"
+            },
+            "description": "Only count delays from this day on"
           }
         ],
         "responses": {
@@ -101,6 +120,25 @@
               "type": "string",
               "title": "Station Id"
             }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only count delays from this day on",
+              "title": "Since"
+            },
+            "description": "Only count delays from this day on"
           }
         ],
         "responses": {
@@ -301,6 +339,19 @@
             "type": "string",
             "format": "time",
             "title": "Departure"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since",
+            "description": "Only count days from this one on"
           }
         },
         "type": "object",

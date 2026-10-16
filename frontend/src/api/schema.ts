@@ -155,6 +155,11 @@ export interface components {
              * Format: time
              */
             departure: string;
+            /**
+             * Since
+             * @description Only count days from this one on
+             */
+            since?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -304,7 +309,10 @@ export interface operations {
     };
     get_line_heat_lines__line__heat_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only count delays from this day on */
+                since?: string | null;
+            };
             header?: never;
             path: {
                 line: components["schemas"]["Line"];
@@ -335,7 +343,10 @@ export interface operations {
     };
     get_station_stations__station_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only count delays from this day on */
+                since?: string | null;
+            };
             header?: never;
             path: {
                 station_id: string;

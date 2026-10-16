@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import type { LineId, Schemas } from "../../api/client";
 import { useCommuteRisk } from "../../api/hooks";
@@ -9,10 +9,11 @@ const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satur
 
 interface Props {
   lines: Schemas["LineOut"][];
+  since: string | undefined;
   onResult: (stationIds: Set<string> | undefined) => void;
 }
 
-export function CommuteCheck({ lines, onResult }: Props) {
+export function CommuteCheck({ lines, since, onResult }: Props) {
   const [line, setLine] = useState<LineId>("1");
   const stations = lines.find((l) => l.id === line)?.stations ?? [];
   const [origin, setOrigin] = useState("bloor-yonge");
@@ -20,6 +21,13 @@ export function CommuteCheck({ lines, onResult }: Props) {
   const [weekday, setWeekday] = useState(0);
   const [departure, setDeparture] = useState("08:15");
   const risk = useCommuteRisk();
+  const { reset } = risk;
+
+  // A result for another period would be misleading next to the map.
+  useEffect(() => {
+    reset();
+    onResult(undefined);
+  }, [since, reset, onResult]);
 
   const changeLine = (next: LineId) => {
     const nextStations = lines.find((l) => l.id === next)?.stations ?? [];
@@ -33,7 +41,7 @@ export function CommuteCheck({ lines, onResult }: Props) {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     risk.mutate(
-      { line, origin, destination, weekday, departure },
+      { line, origin, destination, weekday, departure, since },
       { onSuccess: (result) => onResult(new Set(result.stations.map((s) => s.id))) },
     );
   };

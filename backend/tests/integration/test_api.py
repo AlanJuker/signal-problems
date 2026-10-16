@@ -122,3 +122,26 @@ def test_commute_risk_rejects_invalid_trips(client: TestClient, payload: dict[st
 def test_openapi_schema(client: TestClient) -> None:
     paths = client.get("/openapi.json").json()["paths"]
     assert {"/summary", "/lines", "/lines/{line}/heat", "/stations/{station_id}"} <= set(paths)
+
+
+def test_since_filters_heat_station_and_commute(client: TestClient) -> None:
+    heat = {h["station"]["id"]: h for h in client.get("/lines/1/heat?since=2026-08-20").json()}
+    assert heat["tmu"]["significant"] == 1
+    assert client.get("/stations/tmu", params={"since": "2026-08-20"}).json()["significant"] == 1
+
+    body = client.post(
+        "/commute/risk",
+        json={
+            "line": "1",
+            "origin": "bloor-yonge",
+            "destination": "union",
+            "weekday": 0,
+            "departure": "08:15",
+            "since": "2026-08-20",
+        },
+    ).json()
+    assert (body["days_observed"], body["days_hit"]) == (2, 1)
+
+
+def test_rejects_an_invalid_since(client: TestClient) -> None:
+    assert client.get("/stations/tmu?since=yesterday").status_code == 422
