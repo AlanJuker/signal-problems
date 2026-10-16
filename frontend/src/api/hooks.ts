@@ -20,11 +20,12 @@ export function useLines() {
 }
 
 /** 5+ minute delays per station, merged across lines: interchanges take their busiest line. */
-export function useStationHeat() {
+export function useStationHeat(since: string | undefined) {
   return useQueries({
     queries: LINE_IDS.map((line) => ({
-      queryKey: ["heat", line],
-      queryFn: () => unwrap(api.GET("/lines/{line}/heat", { params: { path: { line } } })),
+      queryKey: ["heat", line, since],
+      queryFn: () =>
+        unwrap(api.GET("/lines/{line}/heat", { params: { path: { line }, query: { since } } })),
     })),
     combine: (results) => {
       const heat = new Map<string, number>();
@@ -38,11 +39,15 @@ export function useStationHeat() {
   });
 }
 
-export function useStation(stationId: string | null) {
+export function useStation(stationId: string | null, since: string | undefined) {
   return useQuery({
-    queryKey: ["station", stationId],
+    queryKey: ["station", stationId, since],
     queryFn: () =>
-      unwrap(api.GET("/stations/{station_id}", { params: { path: { station_id: stationId! } } })),
+      unwrap(
+        api.GET("/stations/{station_id}", {
+          params: { path: { station_id: stationId! }, query: { since } },
+        }),
+      ),
     enabled: stationId !== null,
   });
 }

@@ -1,15 +1,16 @@
 import { useCallback, useState } from "react";
 
-/** The selected station lives in `?station=…`, so a station's page can be shared. */
-export function useStationParam(): [string | null, (stationId: string) => void] {
-  const [station, setStation] = useState(() =>
-    new URLSearchParams(window.location.search).get("station"),
+/** State kept in the query string (`?station=…&period=…`), so a view can be shared. */
+export function useSearchParam(name: string): [string | null, (value: string) => void] {
+  const [value, setValue] = useState(() => new URLSearchParams(window.location.search).get(name));
+  const update = useCallback(
+    (next: string) => {
+      const url = new URL(window.location.href);
+      url.searchParams.set(name, next);
+      window.history.replaceState(null, "", url);
+      setValue(next);
+    },
+    [name],
   );
-  const select = useCallback((stationId: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("station", stationId);
-    window.history.replaceState(null, "", url);
-    setStation(stationId);
-  }, []);
-  return [station, select];
+  return [value, update];
 }
