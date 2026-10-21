@@ -161,8 +161,9 @@ docs/adr/            # architecture decision records
 ## Roadmap
 
 - [x] Station resolver, ingestion, API, web app, Docker Compose
-- [ ] Commute delay model (gradient boosting on hour, weekday, station and recent incidents), evaluated against
-      the historical baseline
+- [x] Commute delay model evaluated against the historical frequency: it wins on held-out 2025–2026 data, by a
+      modest margin ([write-up](docs/experiments/commute-model.md))
+- [ ] Serve the model's probability in the commute check
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
 - [ ] Choose the period the commute check is based on
 - [ ] Bus and streetcar delay logs
