@@ -15,7 +15,7 @@ jobs:
     name: Full stack starts and serves data
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build and start
         run: docker compose up --build --detach --wait
       - name: Ingest the test fixture
