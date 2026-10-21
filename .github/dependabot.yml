@@ -10,6 +10,13 @@ updates:
     schedule: { interval: weekly }
     groups:
       npm: { patterns: ["*"] }
+    ignore:
+      # openapi-typescript, which generates the API types, only supports TypeScript 5
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # Keep Node's types on the version CI and Docker run (22)
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
