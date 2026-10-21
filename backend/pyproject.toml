@@ -25,6 +25,10 @@ dev = [
   "ruff>=0.14",
   "types-openpyxl>=3.1.5.20260827",
 ]
+ml = [
+    "pandas>=2.3",
+    "scikit-learn>=1.7",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -43,6 +47,10 @@ allowed-confusables = ["–", "’"]
 [tool.mypy]
 strict = true
 packages = ["signal_problems"]
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "pandas.*"]  # no type information shipped
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
