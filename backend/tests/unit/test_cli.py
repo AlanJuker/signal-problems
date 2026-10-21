@@ -55,3 +55,28 @@ def test_history_flag_is_passed_to_the_source(
     monkeypatch.setattr(cli, "TorontoOpenDataSource", FakeSource)
     cli.main(["ingest", "--history"])
     assert created == [True]
+
+
+def test_model_eval_prints_a_table(
+    database_url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pytest.importorskip("sklearn", reason="needs the ml dependency group")
+    from signal_problems.modeling import experiment  # noqa: PLC0415
+
+    report = experiment.Report(
+        rows={"train": 10, "validation": 2, "test": 3},
+        positive_rate={"train": 0.1, "validation": 0.1, "test": 0.2},
+        chosen_iterations=50,
+        test=[experiment.Scores("gradient boosting", 0.05, 0.008, 0.66, 0.02)],
+        calibration=experiment.pd.DataFrame({"predicted": [0.1], "observed": [0.1], "cells": [3]}),
+    )
+    monkeypatch.setattr(cli, "DATABASE_URL", database_url)
+    monkeypatch.setattr(experiment, "run", lambda *_: report)
+    cli.main(["ingest", "--csv", str(SAMPLE_CSV)])
+    capsys.readouterr()
+
+    cli.main(["model-eval"])
+
+    out = capsys.readouterr().out
+    assert "| gradient boosting | 0.05000 | 0.008000 | 0.660 | 0.0200 |" in out
+    assert "Boosting rounds chosen on 2024: 50" in out
