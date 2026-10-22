@@ -80,3 +80,29 @@ def test_model_eval_prints_a_table(
     out = capsys.readouterr().out
     assert "| gradient boosting | 0.05000 | 0.008000 | 0.660 | 0.0200 |" in out
     assert "Boosting rounds chosen on 2024: 50" in out
+
+
+def test_train_model_stores_a_forecast(
+    database_url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pytest.importorskip("sklearn", reason="needs the ml dependency group")
+    from signal_problems.modeling import forecast  # noqa: PLC0415
+
+    week = forecast.pd.DataFrame(
+        {
+            "station_id": ["union", "union"],
+            "date": forecast.pd.to_datetime(["2026-09-01", "2026-09-02"]),
+            "hour": [8, 8],
+            "probability": [0.1, 0.2],
+        }
+    )
+    monkeypatch.setattr(cli, "DATABASE_URL", database_url)
+    monkeypatch.setattr(forecast, "forecast_week", lambda *_: week)
+    cli.main(["train-model"])
+    assert "No delays stored yet" in capsys.readouterr().out
+
+    cli.main(["ingest", "--csv", str(SAMPLE_CSV)])
+    capsys.readouterr()
+    cli.main(["train-model"])
+
+    assert "Stored 2 forecasts for 2026-09-01 – 2026-09-02" in capsys.readouterr().out
