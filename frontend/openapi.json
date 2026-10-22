@@ -300,6 +300,33 @@
             },
             "type": "array",
             "title": "Top Causes"
+          },
+          "model_chance": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Chance",
+            "description": "The delay model's chance of at least one 5+ minute delay on the trip on model_day; null until a model has been trained"
+          },
+          "model_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Day",
+            "description": "The day model_chance is for: the next one after the data ends"
           }
         },
         "type": "object",

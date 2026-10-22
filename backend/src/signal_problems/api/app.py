@@ -115,6 +115,8 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
                 StationCountOut(station=StationOut.of(s), delays=n) for s, n in a.worst_stations
             ],
             top_causes=[CauseOut.of(c) for c in a.top_causes],
+            model_chance=a.forecast.chance if a.forecast else None,
+            model_day=a.forecast.day if a.forecast else None,
         )
 
     return app

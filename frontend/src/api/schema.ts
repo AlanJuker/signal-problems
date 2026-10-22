@@ -137,6 +137,16 @@ export interface components {
             worst_stations: components["schemas"]["StationCountOut"][];
             /** Top Causes */
             top_causes: components["schemas"]["CauseOut"][];
+            /**
+             * Model Chance
+             * @description The delay model's chance of at least one 5+ minute delay on the trip on model_day; null until a model has been trained
+             */
+            model_chance?: number | null;
+            /**
+             * Model Day
+             * @description The day model_chance is for: the next one after the data ends
+             */
+            model_day?: string | null;
         };
         /** CommuteRequest */
         CommuteRequest: {
