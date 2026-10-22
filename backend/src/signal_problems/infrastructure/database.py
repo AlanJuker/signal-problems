@@ -3,12 +3,16 @@ from datetime import date, datetime, time
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
+    Float,
     Index,
     Integer,
     String,
     create_engine,
+    delete,
     func,
+    insert,
     or_,
     select,
 )
@@ -17,7 +21,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from sqlalchemy.sql.dml import ReturningInsert
 
-from signal_problems.application.queries import DelayFact
+from signal_problems.application.queries import DelayFact, Forecast
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES, Delay
 from signal_problems.domain.lines import Line
 
@@ -64,6 +68,17 @@ class DelayRecord(Base):
         )
 
 
+class ForecastRecord(Base):
+    """The delay model's chance of a 5+ minute delay, per station and hour, for one day."""
+
+    __tablename__ = "forecasts"
+
+    station_id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    hour: Mapped[int] = mapped_column(Integer, primary_key=True)
+    probability: Mapped[float] = mapped_column(Float)
+
+
 def make_engine(url: str) -> Engine:
     return create_engine(url)
 
@@ -90,6 +105,22 @@ class SqlDelayRepository:
             inserted += len(self._session.scalars(statement).all())
         self._session.commit()
         return inserted
+
+
+class SqlForecastRepository:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def replace(self, rows: Sequence[tuple[str, date, int, float]]) -> int:
+        """Swap the stored forecast for a new one, in one transaction."""
+        self._session.execute(delete(ForecastRecord))
+        if rows:
+            self._session.execute(
+                insert(ForecastRecord),
+                [{"station_id": s, "day": d, "hour": h, "probability": p} for s, d, h, p in rows],
+            )
+        self._session.commit()
+        return len(rows)
 
 
 def _insert_ignoring_duplicates(
@@ -153,3 +184,18 @@ class SqlDelayQueries:
             ).select_from(DelayRecord)
         ).one()
         return incidents, significant_count, signal
+
+    def forecast(self, station_ids: Sequence[str], weekday: int) -> Forecast | None:
+        rows = self._session.execute(
+            select(
+                ForecastRecord.day,
+                ForecastRecord.station_id,
+                ForecastRecord.hour,
+                ForecastRecord.probability,
+            ).where(ForecastRecord.station_id.in_(station_ids))
+        ).all()
+        # A stored forecast covers seven consecutive days, so each weekday appears once.
+        on_day = [r for r in rows if r.day.weekday() == weekday]
+        if not on_day:
+            return None
+        return Forecast(on_day[0].day, {(r.station_id, r.hour): r.probability for r in on_day})
