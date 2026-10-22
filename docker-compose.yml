@@ -13,7 +13,10 @@ services:
       retries: 20
 
   api:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        ML: ${ML:-false}
     environment:
       DATABASE_URL: postgresql+psycopg://signal:signal@db:5432/signal_problems
     depends_on:
