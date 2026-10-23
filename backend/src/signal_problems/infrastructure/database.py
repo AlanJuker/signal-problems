@@ -24,6 +24,7 @@ from sqlalchemy.sql.dml import ReturningInsert
 from signal_problems.application.queries import DelayFact, Forecast
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES, Delay
 from signal_problems.domain.lines import Line
+from signal_problems.domain.surface import SurfaceDelay
 
 
 class Base(DeclarativeBase):
@@ -68,6 +69,38 @@ class DelayRecord(Base):
         )
 
 
+class SurfaceDelayRecord(Base):
+    __tablename__ = "surface_delays"
+
+    fingerprint: Mapped[str] = mapped_column(String(32), primary_key=True)
+    mode: Mapped[str] = mapped_column(String(10))
+    route: Mapped[int] = mapped_column(Integer)
+    route_name: Mapped[str] = mapped_column(String(80))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime)  # Toronto local time, as logged
+    location: Mapped[str] = mapped_column(String(120))
+    cause_code: Mapped[str] = mapped_column(String(8))
+    cause_category: Mapped[str] = mapped_column(String(24))
+    minutes: Mapped[int] = mapped_column(Integer)
+    gap_minutes: Mapped[int] = mapped_column(Integer)
+
+    __table_args__ = (Index("ix_surface_delays_route", "mode", "route", "occurred_at"),)
+
+    @classmethod
+    def from_domain(cls, delay: SurfaceDelay) -> "SurfaceDelayRecord":
+        return cls(
+            fingerprint=delay.fingerprint,
+            mode=delay.mode.value,
+            route=delay.route,
+            route_name=delay.route_name,
+            occurred_at=delay.occurred_at,
+            location=delay.location,
+            cause_code=delay.cause.code,
+            cause_category=delay.cause.category.value,
+            minutes=delay.minutes,
+            gap_minutes=delay.gap_minutes,
+        )
+
+
 class ForecastRecord(Base):
     """The delay model's chance of a 5+ minute delay, per station and hour, for one day."""
 
@@ -84,27 +117,40 @@ def make_engine(url: str) -> Engine:
 
 
 class SqlDelayRepository:
-    _BATCH = 2_000  # 11 columns per row stays under SQLite's 32,766 bound parameters
-
     def __init__(self, session: Session) -> None:
         self._session = session
 
     def add_new(self, delays: Sequence[Delay]) -> int:
-        """Insert-or-ignore on the fingerprint, in one statement per batch.
+        records = [_columns(DelayRecord.from_domain(d)) for d in delays]
+        return _add_new(self._session, DelayRecord, records)
 
-        Counts the fingerprints returned by `RETURNING`: `rowcount` is -1 on PostgreSQL when
-        SQLAlchemy splits a multi-row insert into several statements.
-        """
-        dialect = self._session.get_bind().dialect.name
-        inserted = 0
-        for start in range(0, len(delays), self._BATCH):
-            rows = [
-                _columns(DelayRecord.from_domain(d)) for d in delays[start : start + self._BATCH]
-            ]
-            statement = _insert_ignoring_duplicates(dialect, rows)
-            inserted += len(self._session.scalars(statement).all())
-        self._session.commit()
-        return inserted
+
+class SqlSurfaceDelayRepository:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def add_new(self, delays: Sequence[SurfaceDelay]) -> int:
+        records = [_columns(SurfaceDelayRecord.from_domain(d)) for d in delays]
+        return _add_new(self._session, SurfaceDelayRecord, records)
+
+
+_BATCH = 2_000  # 11 columns per row stays under SQLite's 32,766 bound parameters
+Fingerprinted = type[DelayRecord] | type[SurfaceDelayRecord]
+
+
+def _add_new(session: Session, model: Fingerprinted, records: list[dict[str, object]]) -> int:
+    """Insert-or-ignore on the fingerprint, in one statement per batch.
+
+    Counts the fingerprints returned by `RETURNING`: `rowcount` is -1 on PostgreSQL when
+    SQLAlchemy splits a multi-row insert into several statements.
+    """
+    dialect = session.get_bind().dialect.name
+    inserted = 0
+    for start in range(0, len(records), _BATCH):
+        statement = _insert_ignoring_duplicates(dialect, model, records[start : start + _BATCH])
+        inserted += len(session.scalars(statement).all())
+    session.commit()
+    return inserted
 
 
 class SqlForecastRepository:
@@ -124,19 +170,19 @@ class SqlForecastRepository:
 
 
 def _insert_ignoring_duplicates(
-    dialect: str, rows: list[dict[str, object]]
+    dialect: str, model: Fingerprinted, rows: list[dict[str, object]]
 ) -> ReturningInsert[tuple[str]]:
     if dialect == "postgresql":
-        statement = postgresql.insert(DelayRecord).values(rows).on_conflict_do_nothing()
-        return statement.returning(DelayRecord.fingerprint)
+        statement = postgresql.insert(model).values(rows).on_conflict_do_nothing()
+        return statement.returning(model.fingerprint)
     if dialect == "sqlite":
-        lite = sqlite.insert(DelayRecord).values(rows).on_conflict_do_nothing()
-        return lite.returning(DelayRecord.fingerprint)
+        lite = sqlite.insert(model).values(rows).on_conflict_do_nothing()
+        return lite.returning(model.fingerprint)
     raise ValueError(f"Unsupported database: {dialect}")
 
 
-def _columns(record: DelayRecord) -> dict[str, object]:
-    return {c.key: getattr(record, c.key) for c in DelayRecord.__table__.columns}
+def _columns(record: Base) -> dict[str, object]:
+    return {c.key: getattr(record, c.key) for c in record.__table__.columns}
 
 
 class SqlDelayQueries:
