@@ -126,6 +126,12 @@ function CommuteResult({ result, weekday }: { result: Schemas["CommuteOut"]; wee
           {result.window_end.slice(0, 5)}.
         </span>
       </p>
+      {result.model_chance != null && result.model_day && (
+        <p>
+          The delay model gives <strong>{(result.model_chance * 100).toFixed(1)}%</strong> for{" "}
+          {formatDay(result.model_day)}, the next {weekday} after the data ends.
+        </p>
+      )}
       {result.worst_stations.length > 0 && (
         <p>
           Usually at{" "}
@@ -142,4 +148,12 @@ function CommuteResult({ result, weekday }: { result: Schemas["CommuteOut"]; wee
       </p>
     </div>
   );
+}
+
+function formatDay(isoDate: string): string {
+  // Parsed as local midnight: "2026-09-04" alone would be UTC and show the day before in Toronto.
+  return new Date(`${isoDate}T00:00`).toLocaleDateString("en-CA", {
+    month: "long",
+    day: "numeric",
+  });
 }

@@ -4,12 +4,15 @@ COPY --from=ghcr.io/astral-sh/uv:0.13 /uv /usr/local/bin/uv
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PATH="/app/.venv/bin:$PATH"
 
+# Training the delay model needs the ml group (ML=true); serving its forecasts doesn't.
+ARG ML=false
+
 # Dependencies first, so code changes don't invalidate this layer.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev --no-install-project
+RUN uv sync --locked --no-dev --no-install-project $([ "$ML" = true ] && echo --group ml)
 
 COPY . .
-RUN uv sync --locked --no-dev
+RUN uv sync --locked --no-dev $([ "$ML" = true ] && echo --group ml)
 
 RUN useradd --create-home app
 USER app

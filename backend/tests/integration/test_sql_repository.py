@@ -1,14 +1,19 @@
+from datetime import date
+
 import pytest
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
 from signal_problems.application.ingest import to_delay
+from signal_problems.application.queries import Forecast
 from signal_problems.domain.delays import Delay
 from signal_problems.domain.resolver import StationResolver
 from signal_problems.domain.stations import TTC_SUBWAY
 from signal_problems.infrastructure.database import (
     DelayRecord,
+    SqlDelayQueries,
     SqlDelayRepository,
+    SqlForecastRepository,
     _insert_ignoring_duplicates,
 )
 from signal_problems.infrastructure.toronto_open_data import CsvFileSource
@@ -60,3 +65,17 @@ def test_inserts_in_batches(engine: Engine, monkeypatch: pytest.MonkeyPatch) -> 
 def test_rejects_unsupported_databases() -> None:
     with pytest.raises(ValueError, match="mysql"):
         _insert_ignoring_duplicates("mysql", [])
+
+
+def test_forecast_is_replaced_and_read_by_weekday(engine: Engine) -> None:
+    monday, tuesday = date(2026, 9, 7), date(2026, 9, 8)
+    with Session(engine) as session:
+        repository = SqlForecastRepository(session)
+        repository.replace([("union", monday, 8, 0.5)])
+        new = [("union", monday, 8, 0.1), ("union", tuesday, 8, 0.2), ("king", monday, 8, 0.3)]
+        assert repository.replace(new) == 3
+        queries = SqlDelayQueries(session)
+
+        forecast = queries.forecast(["union"], weekday=0)
+        assert forecast == Forecast(monday, {("union", 8): 0.1})  # the old forecast is gone
+        assert queries.forecast(["union"], weekday=2) is None  # no Wednesday stored

@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +11,7 @@ from signal_problems.application.ingest import to_delay
 from signal_problems.application.ports import RawDelayRow
 from signal_problems.domain.resolver import StationResolver
 from signal_problems.domain.stations import TTC_SUBWAY
-from signal_problems.infrastructure.database import SqlDelayRepository
+from signal_problems.infrastructure.database import SqlDelayRepository, SqlForecastRepository
 
 resolver = StationResolver(TTC_SUBWAY)
 
@@ -100,6 +100,24 @@ def test_commute_risk(client: TestClient) -> None:
     assert body["worst_stations"] == [
         {"station": {"id": "tmu", "name": "TMU", "lines": ["1"]}, "delays": 2}
     ]
+    assert (body["model_chance"], body["model_day"]) == (None, None)  # no model trained
+
+
+def test_commute_risk_with_a_trained_model(client: TestClient, engine: Engine) -> None:
+    with Session(engine) as session:
+        SqlForecastRepository(session).replace([("tmu", date(2026, 9, 7), 8, 0.1)])
+    body = client.post(
+        "/commute/risk",
+        json={
+            "line": "1",
+            "origin": "bloor-yonge",
+            "destination": "union",
+            "weekday": 0,
+            "departure": "08:15",
+        },
+    ).json()
+    assert body["model_day"] == "2026-09-07"
+    assert body["model_chance"] == pytest.approx(1 - 0.9**0.7)  # 08:00–08:42 at TMU
 
 
 @pytest.mark.parametrize(

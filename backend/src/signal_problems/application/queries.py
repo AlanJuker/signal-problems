@@ -7,7 +7,7 @@ from datetime import date, datetime, time
 from typing import Protocol
 
 from signal_problems.domain.causes import CauseCategory, DelayCause, cause_for
-from signal_problems.domain.commute import CommuteRisk, Trip, count_weekdays
+from signal_problems.domain.commute import CommuteRisk, Trip, chance_of_any, count_weekdays
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES
 from signal_problems.domain.lines import Line
 from signal_problems.domain.stations import Station, StationRegistry
@@ -29,6 +29,14 @@ class DelayFact:
         return self.minutes >= SIGNIFICANT_DELAY_MINUTES
 
 
+@dataclass(frozen=True, slots=True)
+class Forecast:
+    """The delay model's hourly probabilities for one day."""
+
+    day: date
+    probabilities: dict[tuple[str, int], float]  # (station id, hour) → chance of a 5+ min delay
+
+
 class DelayQueries(Protocol):
     def coverage(self) -> tuple[date, date] | None: ...
 
@@ -44,6 +52,10 @@ class DelayQueries(Protocol):
 
     def totals(self) -> tuple[int, int, int]:
         """(all incidents, 5+ minute delays, 5+ minute delays caused by signal failures)"""
+        ...
+
+    def forecast(self, station_ids: Sequence[str], weekday: int) -> Forecast | None:
+        """The forecast for the next `weekday` after the data ends, if a model was trained."""
         ...
 
 
@@ -87,12 +99,19 @@ class CommuteQuery:
 
 
 @dataclass(frozen=True, slots=True)
+class TripForecast:
+    day: date
+    chance: float  # of at least one 5+ minute delay on the trip
+
+
+@dataclass(frozen=True, slots=True)
 class CommuteAssessment:
     trip: Trip
     window: tuple[time, time]
     risk: CommuteRisk
     worst_stations: list[tuple[Station, int]]
     top_causes: list[CauseCount]
+    forecast: TripForecast | None  # None until a model has been trained
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,7 +197,20 @@ def assess_commute(
             if per_station[s.id]
         ][:3],
         top_causes=_top_causes(hits),
+        forecast=_trip_forecast(trip, queries.forecast(list(on_trip), query.weekday)),
     )
+
+
+def _trip_forecast(trip: Trip, forecast: Forecast | None) -> TripForecast | None:
+    if forecast is None:
+        return None
+    # Hours the model doesn't cover (2–4 a.m.) have no service, so no delays.
+    cells = [
+        (forecast.probabilities.get((station.id, hour), 0.0), share)
+        for station in trip.stations
+        for hour, share in trip.hours_covered()
+    ]
+    return TripForecast(forecast.day, chance_of_any(cells))
 
 
 def _weekdays_observed(coverage: tuple[date, date] | None, weekday: int, since: date | None) -> int:
