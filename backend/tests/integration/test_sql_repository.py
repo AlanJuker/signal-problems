@@ -4,16 +4,19 @@ import pytest
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
-from signal_problems.application.ingest import to_delay
+from signal_problems.application.ingest import to_delay, to_surface_delay
 from signal_problems.application.queries import Forecast
 from signal_problems.domain.delays import Delay
 from signal_problems.domain.resolver import StationResolver
 from signal_problems.domain.stations import TTC_SUBWAY
+from signal_problems.domain.surface import Mode, route_number
 from signal_problems.infrastructure.database import (
     DelayRecord,
     SqlDelayQueries,
     SqlDelayRepository,
     SqlForecastRepository,
+    SqlSurfaceDelayRepository,
+    SurfaceDelayRecord,
     _insert_ignoring_duplicates,
 )
 from signal_problems.infrastructure.toronto_open_data import CsvFileSource
@@ -56,7 +59,7 @@ def test_maps_domain_fields(engine: Engine) -> None:
 
 
 def test_inserts_in_batches(engine: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(SqlDelayRepository, "_BATCH", 2)
+    monkeypatch.setattr("signal_problems.infrastructure.database._BATCH", 2)
     delays = sample_delays()
     with Session(engine) as session:
         assert SqlDelayRepository(session).add_new(delays) == len(delays)
@@ -64,7 +67,7 @@ def test_inserts_in_batches(engine: Engine, monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_rejects_unsupported_databases() -> None:
     with pytest.raises(ValueError, match="mysql"):
-        _insert_ignoring_duplicates("mysql", [])
+        _insert_ignoring_duplicates("mysql", DelayRecord, [])
 
 
 def test_forecast_is_replaced_and_read_by_weekday(engine: Engine) -> None:
@@ -79,3 +82,25 @@ def test_forecast_is_replaced_and_read_by_weekday(engine: Engine) -> None:
         forecast = queries.forecast(["union"], weekday=0)
         assert forecast == Forecast(monday, {("union", 8): 0.1})  # the old forecast is gone
         assert queries.forecast(["union"], weekday=2) is None  # no Wednesday stored
+
+
+def test_surface_delays_are_stored_once(engine: Engine) -> None:
+    source = CsvFileSource(SAMPLE_CSV.parent / "streetcar_sample.csv")
+    delays = []
+    for row in source.fetch():
+        route = route_number(row.line)
+        if route is not None:
+            delays.append(to_surface_delay(row, Mode.STREETCAR, route))
+    unique = list({d.fingerprint: d for d in delays}.values())
+    with Session(engine) as session:
+        repository = SqlSurfaceDelayRepository(session)
+        assert repository.add_new(unique) == 4
+        assert repository.add_new(unique) == 0
+        branch = session.scalars(
+            select(SurfaceDelayRecord).where(SurfaceDelayRecord.route_name == "504A KING")
+        ).one()
+    assert (branch.mode, branch.route, branch.cause_category) == (
+        "streetcar",
+        504,
+        "passengers_and_other",
+    )

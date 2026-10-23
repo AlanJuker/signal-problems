@@ -46,13 +46,14 @@ class DelayCause:
 
 
 @cache
-def _published_codes() -> dict[str, str]:
-    table = files("signal_problems.domain.data").joinpath("delay_codes.csv")
+def _published_codes(mode: str) -> dict[str, str]:
+    table = files("signal_problems.domain.data").joinpath(f"{mode}_codes.csv")
     with table.open(encoding="utf-8") as f:
         return {row["code"]: row["description"] for row in csv.DictReader(f)}
 
 
-def cause_for(code: str) -> DelayCause:
+def cause_for(code: str, mode: str = "subway") -> DelayCause:
+    """Streetcars and buses publish their own code lists, with the same prefixes as the subway."""
     code = code.strip().upper()
     category = _CATEGORY_BY_PREFIX.get(code[:1], CauseCategory.UNKNOWN)
-    return DelayCause(code, _published_codes().get(code), category)
+    return DelayCause(code, _published_codes(mode).get(code), category)
