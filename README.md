@@ -169,7 +169,7 @@ docs/adr/            # architecture decision records
       modest margin ([write-up](docs/experiments/commute-model.md))
 - [x] Serve the model's probability in the commute check, next to the frequency
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
-- [ ] Choose the period the commute check is based on
+- [x] Choose the period every view is based on, kept in the URL
 - [ ] Bus and streetcar delay logs
 - [ ] Deployment
 
