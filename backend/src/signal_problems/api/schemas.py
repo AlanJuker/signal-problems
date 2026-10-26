@@ -4,10 +4,11 @@ from datetime import date, time
 
 from pydantic import BaseModel, Field
 
-from signal_problems.application import queries
+from signal_problems.application import queries, routes
 from signal_problems.domain.causes import CauseCategory
 from signal_problems.domain.lines import Line
 from signal_problems.domain.stations import Station
+from signal_problems.domain.surface import Mode
 
 
 class StationOut(BaseModel):
@@ -104,4 +105,39 @@ class CommuteOut(BaseModel):
     )
     model_day: date | None = Field(
         default=None, description="The day model_chance is for: the next one after the data ends"
+    )
+
+
+class RouteOut(BaseModel):
+    mode: Mode
+    route: int
+    name: str = Field(description='Most common logged name, e.g. "504 King"')
+    incidents: int
+    significant: int = Field(description="Delays of 5 minutes or more")
+    minutes_lost: int
+
+    @classmethod
+    def of(cls, mode: Mode, heat: routes.RouteHeat) -> "RouteOut":
+        return cls(
+            mode=mode,
+            route=heat.route,
+            name=heat.name,
+            incidents=heat.incidents,
+            significant=heat.significant,
+            minutes_lost=heat.minutes_lost,
+        )
+
+
+class LocationCountOut(BaseModel):
+    location: str = Field(description="As logged, usually an intersection")
+    delays: int
+
+
+class RouteProfileOut(BaseModel):
+    route: RouteOut
+    categories: dict[CauseCategory, int]
+    top_causes: list[CauseOut]
+    top_locations: list[LocationCountOut]
+    by_weekday_hour: list[list[int]] = Field(
+        description="5+ minute delays per [weekday][hour], Monday = 0"
     )
