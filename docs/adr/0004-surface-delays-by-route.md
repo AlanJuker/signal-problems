@@ -22,8 +22,6 @@ intersection names, and every guess would move delays to a place that may not ha
 - **A separate `surface_delays` table**, so the subway's tables, endpoints and commute check can't change.
 - **Each mode's own code list** for cause descriptions. The prefixes match the subway's, so cause categories work
   the same way.
-- Route rankings are aggregated in SQL: with 100,000+ bus rows, aggregating in Python like the station views
-  took 279 ms per request; grouping in the database takes 111 ms.
 
 ## Consequences
 
