@@ -110,6 +110,7 @@ With Docker:
 make up        # PostgreSQL, API and web app → http://localhost:8080
 make ingest    # download the current delay log from Toronto Open Data (~5 s)
 make ingest-history   # add 2014–2024 as well: 268,000 rows (~40 s)
+make ingest-surface  # add streetcar and bus delays since 2025, by route (~10 s)
 make model     # optional: train the delay model and store next week's forecasts (~10 s)
 ```
 
@@ -122,6 +123,7 @@ cd backend
 uv sync
 uv run alembic upgrade head
 uv run signal-problems ingest            # add --history for 2014–2024
+uv run signal-problems ingest --mode streetcar   # or --mode bus
 uv run --group ml signal-problems train-model   # optional: the delay model
 uv run uvicorn signal_problems.api.app:app --reload
 

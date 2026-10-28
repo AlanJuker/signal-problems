@@ -106,3 +106,21 @@ def test_train_model_stores_a_forecast(
     cli.main(["train-model"])
 
     assert "Stored 2 forecasts for 2026-09-01 – 2026-09-02" in capsys.readouterr().out
+
+
+def test_ingest_surface_mode_reports_rows_without_a_route(
+    database_url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "DATABASE_URL", database_url)
+    cli.main(["ingest", "--mode", "bus", "--csv", str(SAMPLE_CSV.parent / "bus_sample.csv")])
+
+    out = capsys.readouterr().out
+    assert "Stored:                2" in out
+    assert "No route number:       2" in out
+    assert "LINE 1 SHUTTLE" in out
+    assert "(empty)" in out
+
+
+def test_history_is_subway_only() -> None:
+    with pytest.raises(SystemExit):
+        cli.main(["ingest", "--mode", "streetcar", "--history"])

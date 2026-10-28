@@ -10,12 +10,18 @@ import httpx
 from openpyxl import load_workbook
 
 from signal_problems.application.ports import RawDelayRow
+from signal_problems.domain.surface import Mode
 
 CKAN_API = "https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action"
 PACKAGE = "ttc-subway-delay-data"
 # The current log is one CSV that grows monthly; 2014–2024 are published as yearly XLSX files.
 CURRENT_LOG = "TTC Subway Delay Data since 2025.csv"
 HISTORY = re.compile(r"^ttc-subway-delay-(data-)?.*20\d\d$")
+# Streetcars and buses: (package, current log). Their 2014–2024 files use another schema (#28).
+SURFACE = {
+    Mode.STREETCAR: ("ttc-streetcar-delay-data", "TTC Streetcar Delay Data since 2025.csv"),
+    Mode.BUS: ("ttc-bus-delay-data", "TTC Bus Delay Data since 2025.csv"),
+}
 COLUMNS = ("Date", "Time", "Station", "Line", "Code", "Min Delay", "Min Gap", "Bound", "Vehicle")
 
 
@@ -82,19 +88,28 @@ def _text(cell: object) -> str:
 class TorontoOpenDataSource:
     """Downloads the delay log through the portal's CKAN API."""
 
-    def __init__(self, client: httpx.Client, *, include_history: bool = False) -> None:
+    def __init__(
+        self,
+        client: httpx.Client,
+        *,
+        include_history: bool = False,
+        package: str = PACKAGE,
+        current_log: str = CURRENT_LOG,
+    ) -> None:
         self._client = client
         self._include_history = include_history
+        self._package = package
+        self._current_log = current_log
 
     def fetch(self) -> Iterator[RawDelayRow]:
-        package = self._client.get(f"{CKAN_API}/package_show", params={"id": PACKAGE})
+        package = self._client.get(f"{CKAN_API}/package_show", params={"id": self._package})
         package.raise_for_status()
         resources = package.json()["result"]["resources"]
         if self._include_history:
             for resource in resources:
                 if HISTORY.match(resource["name"]):
                     yield from parse_xlsx(BytesIO(self._download(resource["url"])))
-        url = next(r["url"] for r in resources if r["name"] == CURRENT_LOG)
+        url = next(r["url"] for r in resources if r["name"] == self._current_log)
         yield from parse_csv(self._download(url).decode("utf-8-sig").splitlines())
 
     def _download(self, url: str) -> bytes:
