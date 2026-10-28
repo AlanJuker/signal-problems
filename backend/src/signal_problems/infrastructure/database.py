@@ -22,9 +22,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 from sqlalchemy.sql.dml import ReturningInsert
 
 from signal_problems.application.queries import DelayFact, Forecast
+from signal_problems.application.routes import RouteFact, RouteTotals
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES, Delay
 from signal_problems.domain.lines import Line
-from signal_problems.domain.surface import SurfaceDelay
+from signal_problems.domain.surface import Mode, SurfaceDelay
 
 
 class Base(DeclarativeBase):
@@ -245,3 +246,50 @@ class SqlDelayQueries:
         if not on_day:
             return None
         return Forecast(on_day[0].day, {(r.station_id, r.hour): r.probability for r in on_day})
+
+
+class SqlRouteQueries:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def totals(self, mode: Mode, since: date | None = None) -> list[RouteTotals]:
+        record = SurfaceDelayRecord
+        scope = [record.mode == mode.value]
+        if since is not None:
+            scope.append(record.occurred_at >= datetime.combine(since, time.min))
+        names: dict[int, dict[str, int]] = {}
+        spellings = select(record.route, record.route_name, func.count()).where(*scope)
+        for route, name, count in self._session.execute(
+            spellings.group_by(record.route, record.route_name)
+        ):
+            names.setdefault(route, {})[name] = count
+        counts = select(
+            record.route,
+            func.count(),
+            func.count().filter(record.minutes >= SIGNIFICANT_DELAY_MINUTES),
+            func.sum(record.minutes),
+        ).where(*scope)
+        return [
+            RouteTotals(route, names[route], incidents, significant, minutes)
+            for route, incidents, significant, minutes in self._session.execute(
+                counts.group_by(record.route)
+            )
+        ]
+
+    def facts(
+        self, mode: Mode, route: int | None = None, since: date | None = None
+    ) -> list[RouteFact]:
+        record = SurfaceDelayRecord
+        query = select(
+            record.occurred_at,
+            record.route,
+            record.route_name,
+            record.location,
+            record.cause_code,
+            record.minutes,
+        ).where(record.mode == mode.value)
+        if route is not None:
+            query = query.where(record.route == route)
+        if since is not None:
+            query = query.where(record.occurred_at >= datetime.combine(since, time.min))
+        return [RouteFact(*row) for row in self._session.execute(query)]

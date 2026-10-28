@@ -47,3 +47,9 @@ class SurfaceDelay:
     @property
     def is_significant(self) -> bool:
         return self.minutes >= SIGNIFICANT_DELAY_MINUTES
+
+
+def route_label(logged: str) -> str:
+    """How a logged route name reads in the app: "504 KING" → "504 King"."""
+    number, _, name = logged.strip().partition(" ")
+    return f"{number} {name.title()}".strip()

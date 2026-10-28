@@ -72,6 +72,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Routes
+         * @description Streetcar or bus routes, the most 5+ minute delays first.
+         */
+        get: operations["get_routes_routes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/routes/{mode}/{route}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Route */
+        get: operations["get_route_routes__mode___route__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/commute/risk": {
         parameters: {
             query?: never;
@@ -189,6 +226,58 @@ export interface components {
             name: string;
             /** Stations */
             stations: components["schemas"]["StationOut"][];
+        };
+        /** LocationCountOut */
+        LocationCountOut: {
+            /**
+             * Location
+             * @description As logged, usually an intersection
+             */
+            location: string;
+            /** Delays */
+            delays: number;
+        };
+        /**
+         * Mode
+         * @enum {string}
+         */
+        Mode: "streetcar" | "bus";
+        /** RouteOut */
+        RouteOut: {
+            mode: components["schemas"]["Mode"];
+            /** Route */
+            route: number;
+            /**
+             * Name
+             * @description Most common logged name, e.g. "504 King"
+             */
+            name: string;
+            /** Incidents */
+            incidents: number;
+            /**
+             * Significant
+             * @description Delays of 5 minutes or more
+             */
+            significant: number;
+            /** Minutes Lost */
+            minutes_lost: number;
+        };
+        /** RouteProfileOut */
+        RouteProfileOut: {
+            route: components["schemas"]["RouteOut"];
+            /** Categories */
+            categories: {
+                [key: string]: number;
+            };
+            /** Top Causes */
+            top_causes: components["schemas"]["CauseOut"][];
+            /** Top Locations */
+            top_locations: components["schemas"]["LocationCountOut"][];
+            /**
+             * By Weekday Hour
+             * @description 5+ minute delays per [weekday][hour], Monday = 0
+             */
+            by_weekday_hour: number[][];
         };
         /** StationCountOut */
         StationCountOut: {
@@ -375,6 +464,81 @@ export interface operations {
                 };
             };
             /** @description Unknown station */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routes_routes_get: {
+        parameters: {
+            query: {
+                mode: components["schemas"]["Mode"];
+                /** @description Only count delays from this day on */
+                since?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_route_routes__mode___route__get: {
+        parameters: {
+            query?: {
+                /** @description Only count delays from this day on */
+                since?: string | null;
+            };
+            header?: never;
+            path: {
+                mode: components["schemas"]["Mode"];
+                route: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteProfileOut"];
+                };
+            };
+            /** @description No delays on that route */
             404: {
                 headers: {
                     [name: string]: unknown;
