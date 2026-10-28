@@ -28,9 +28,15 @@ def fact(  # noqa: PLR0913 (test builder: every field has a default)
 
 
 class FakeQueries:
-    def __init__(self, facts: list[DelayFact], coverage: tuple[date, date] | None) -> None:
+    def __init__(
+        self,
+        facts: list[DelayFact],
+        coverage: tuple[date, date] | None,
+        forecast: queries.Forecast | None = None,
+    ) -> None:
         self.facts = facts
         self._coverage = coverage
+        self._forecast = forecast
 
     def coverage(self) -> tuple[date, date] | None:
         return self._coverage
@@ -48,6 +54,9 @@ class FakeQueries:
 
     def totals(self) -> tuple[int, int, int]:
         return len(self.facts), sum(f.is_significant for f in self.facts), 0
+
+    def forecast(self, station_ids: Sequence[str], weekday: int) -> queries.Forecast | None:
+        return self._forecast
 
 
 FOUR_MONDAYS = (date(2026, 8, 10), date(2026, 8, 31))
@@ -121,6 +130,25 @@ def test_assess_commute_without_data() -> None:
     a = queries.assess_commute(FakeQueries([], None), TTC_SUBWAY, query)
     assert a.risk.share == 0.0
     assert [s.id for s in a.trip.stations] == ["leslie", "bessarion", "bayview"]
+    assert a.forecast is None  # no model trained
+
+
+def test_trip_forecast_combines_the_cells_inside_the_window() -> None:
+    forecast = queries.Forecast(
+        date(2026, 9, 7),
+        {
+            ("tmu", 8): 0.1,
+            ("union", 8): 0.2,
+            ("tmu", 12): 0.9,  # outside the window
+            ("finch", 8): 0.9,  # not on the trip
+        },
+    )
+    query = queries.CommuteQuery(Line.YONGE_UNIVERSITY, "bloor-yonge", "union", 0, time(8, 15))
+    a = queries.assess_commute(FakeQueries([], FOUR_MONDAYS, forecast), TTC_SUBWAY, query)
+
+    # The window is 08:00–08:42: 70% of the 8 a.m. hour at each station
+    expected = 1 - (0.9 * 0.8) ** 0.7
+    assert a.forecast == queries.TripForecast(date(2026, 9, 7), pytest.approx(expected))
 
 
 def test_since_limits_every_query() -> None:

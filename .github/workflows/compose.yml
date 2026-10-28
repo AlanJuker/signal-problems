@@ -27,6 +27,16 @@ jobs:
           curl --fail --silent http://localhost:8080/api/summary | tee /dev/stderr | grep -q '"incidents":5'
           curl --fail --silent http://localhost:8080/ | grep -q '<div id="root">'
           curl --fail --silent "http://localhost:8080/?station=union" | grep -q '<div id="root">'
+      - name: Train the delay model in an image built with the ml group
+        run: |
+          ML=true docker compose up --build --detach --wait api
+          docker compose exec -T api signal-problems train-model
+      - name: The commute check returns the model's chance
+        run: |
+          curl --fail --silent -X POST http://localhost:8000/commute/risk \
+            -H 'Content-Type: application/json' \
+            -d '{"line":"1","origin":"bloor-yonge","destination":"union","weekday":0,"departure":"08:15"}' \
+            | tee /dev/stderr | grep -q '"model_chance":[0-9]'
       - name: Logs
         if: failure()
         run: docker compose logs

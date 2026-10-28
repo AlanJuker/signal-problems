@@ -95,3 +95,13 @@ class CommuteOut(BaseModel):
     risk: float = Field(ge=0, le=1)
     worst_stations: list[StationCountOut]
     top_causes: list[CauseOut]
+    model_chance: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="The delay model's chance of at least one 5+ minute delay on the trip on "
+        "model_day; null until a model has been trained",
+    )
+    model_day: date | None = Field(
+        default=None, description="The day model_chance is for: the next one after the data ends"
+    )

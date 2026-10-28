@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 
 import pytest
 
-from signal_problems.domain.commute import CommuteRisk, Trip, count_weekdays
+from signal_problems.domain.commute import CommuteRisk, Trip, chance_of_any, count_weekdays
 from signal_problems.domain.lines import Line
 from signal_problems.domain.stations import TTC_SUBWAY
 
@@ -58,3 +58,16 @@ def test_count_weekdays(first: date, last: date, weekday: int, count: int) -> No
 def test_risk_share() -> None:
     assert CommuteRisk(days_observed=87, days_hit=24).share == pytest.approx(0.2759, abs=1e-4)
     assert CommuteRisk(days_observed=0, days_hit=0).share == 0.0
+
+
+def test_hours_covered_splits_the_window_by_hour() -> None:
+    # 6 stations, 10 min of travel: 07:50–08:30, the last 10 minutes of 7 a.m. and half of 8 a.m.
+    assert trip(time(8, 5), destination="king").hours_covered() == [(7, 10 / 60), (8, 0.5)]
+
+
+def test_chance_of_any_combines_cells() -> None:
+    # Two full hours at 10% and 20%: no delay in either is 0.9 x 0.8
+    assert chance_of_any([(0.1, 1.0), (0.2, 1.0)]) == pytest.approx(1 - 0.9 * 0.8)
+    # Half an hour at 10% is less likely than the full hour, and no cells means no delay
+    assert chance_of_any([(0.1, 0.5)]) == pytest.approx(1 - 0.9**0.5)
+    assert chance_of_any([]) == 0.0

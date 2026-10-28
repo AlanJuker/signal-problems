@@ -84,8 +84,10 @@ Some decisions worth a look:
 - **Idempotent imports by content.** The portal's `_id` is a datastore row number, so each row is keyed by a
   hash of its fields and inserted with `ON CONFLICT DO NOTHING`. The 66 rows logged twice are reported, not
   hidden.
-- **Commute risk is a historical frequency, not a prediction**: *on how many of the observed Mondays was there a
-  5+ minute delay on these stations in this window?* It is easy to explain and to verify.
+- **The commute check leads with a historical frequency**: *on how many of the observed Mondays was there a
+  5+ minute delay on these stations in this window?* It is easy to explain and to verify. Once the delay model is
+  trained, its chance for the next Monday sits next to it. Training stores a week of forecasts in the database, so
+  the API never loads scikit-learn.
 - **One API contract.** The frontend's TypeScript types are generated from the backend's OpenAPI schema, and CI
   fails if they drift apart.
 - **Accessible map.** Every station is a keyboard-operable button whose name includes its delay count, so colour
@@ -108,6 +110,7 @@ With Docker:
 make up        # PostgreSQL, API and web app → http://localhost:8080
 make ingest    # download the current delay log from Toronto Open Data (~5 s)
 make ingest-history   # add 2014–2024 as well: 268,000 rows (~40 s)
+make model     # optional: train the delay model and store next week's forecasts (~10 s)
 ```
 
 API docs are at http://localhost:8000/docs.
@@ -119,6 +122,7 @@ cd backend
 uv sync
 uv run alembic upgrade head
 uv run signal-problems ingest            # add --history for 2014–2024
+uv run --group ml signal-problems train-model   # optional: the delay model
 uv run uvicorn signal_problems.api.app:app --reload
 
 cd ../frontend
@@ -163,9 +167,9 @@ docs/adr/            # architecture decision records
 - [x] Station resolver, ingestion, API, web app, Docker Compose
 - [x] Commute delay model evaluated against the historical frequency: it wins on held-out 2025–2026 data, by a
       modest margin ([write-up](docs/experiments/commute-model.md))
-- [ ] Serve the model's probability in the commute check
+- [x] Serve the model's probability in the commute check, next to the frequency
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
-- [ ] Choose the period the commute check is based on
+- [x] Choose the period every view is based on, kept in the URL
 - [ ] Bus and streetcar delay logs
 - [ ] Deployment
 

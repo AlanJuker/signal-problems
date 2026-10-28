@@ -58,6 +58,26 @@ describe("App", () => {
     expect(screen.getByText(/between 08:00 and 08:34/)).toBeInTheDocument();
     const kipling = screen.getByRole("button", { name: /^Kipling:/ });
     expect(kipling).toHaveAttribute("data-dimmed", "true");
+    expect(screen.queryByText(/delay model/)).not.toBeInTheDocument(); // no model trained
+  });
+
+  it("shows the model's chance next to the frequency once a model is trained", async () => {
+    server.use(
+      http.post("*/api/commute/risk", () =>
+        HttpResponse.json({ ...COMMUTE, model_chance: 0.042, model_day: "2026-09-04" }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithQueries(<App />);
+
+    await user.selectOptions(await screen.findByLabelText("Day"), "Friday");
+    await user.click(screen.getByRole("button", { name: "Check" }));
+
+    expect(await screen.findByText("28%")).toBeInTheDocument();
+    expect(screen.getByText("4.2%")).toBeInTheDocument();
+    expect(
+      screen.getByText(/for September 4, the next Friday after the data ends/),
+    ).toBeInTheDocument();
   });
 
   it("resets the trip when the line changes", async () => {

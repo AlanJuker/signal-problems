@@ -9,7 +9,11 @@ from signal_problems.application.ingest import IngestDelays, IngestReport
 from signal_problems.application.ports import DelaySource
 from signal_problems.domain.resolver import StationResolver
 from signal_problems.domain.stations import TTC_SUBWAY
-from signal_problems.infrastructure.database import SqlDelayRepository, make_engine
+from signal_problems.infrastructure.database import (
+    SqlDelayRepository,
+    SqlForecastRepository,
+    make_engine,
+)
 from signal_problems.infrastructure.settings import DATABASE_URL
 from signal_problems.infrastructure.toronto_open_data import CsvFileSource, TorontoOpenDataSource
 
@@ -26,10 +30,18 @@ def main(argv: list[str] | None = None) -> None:
     commands.add_parser(
         "model-eval", help="compare a delay model with the historical frequency (needs --group ml)"
     )
+    commands.add_parser(
+        "train-model",
+        help="store next week's delay forecasts for the commute check (needs --group ml)",
+    )
     args = parser.parse_args(argv)
 
     if args.command == "model-eval":
         print(run_model_eval())
+        return
+
+    if args.command == "train-model":
+        print(run_train_model())
         return
 
     if args.command == "openapi":
@@ -102,3 +114,27 @@ def run_model_eval() -> str:
         report.calibration.to_string(float_format=lambda x: f"{x:.4f}"),
     ]
     return "\n".join(lines)
+
+
+def run_train_model() -> str:
+    from signal_problems.modeling.dataset import significant_delays  # noqa: PLC0415
+    from signal_problems.modeling.forecast import forecast_week  # noqa: PLC0415
+
+    engine = make_engine(DATABASE_URL)
+    try:
+        with engine.connect() as connection:
+            events = significant_delays(connection)
+        if events.empty:
+            return "No delays stored yet: run ingest first."
+        last = events["date"].max().date()
+        week = forecast_week(events, sorted(s.id for s in TTC_SUBWAY.all()), last)
+        rows = [
+            (r.station_id, r.date.date(), int(r.hour), float(r.probability))
+            for r in week.itertuples()
+        ]
+        with Session(engine) as session:
+            stored = SqlForecastRepository(session).replace(rows)
+    finally:
+        engine.dispose()
+    days = week["date"].dt.date
+    return f"Stored {stored:,} forecasts for {days.min()} – {days.max()} (data through {last})"

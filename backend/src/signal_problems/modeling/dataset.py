@@ -64,7 +64,7 @@ def build_cells(events: pd.DataFrame, stations: list[str], first: date, last: da
     cells["station"] = pd.Categorical(cells["station_id"], categories=stations).codes.astype(
         "int16"
     )
-    cells["weekday"] = cells["date"].dt.weekday.astype("int8")
+    cells["weekday"] = cells["date"].dt.day_of_week.astype("int8")
     cells["month"] = cells["date"].dt.month.astype("int8")
     cells["hour"] = cells["hour"].astype("int8")
     return cells

@@ -50,3 +50,21 @@ a modest gain, so the frequency's simple explanation ("24 of 87 Fridays") stays 
   weekday and hour.
 - Delays doubled between 2014 and 2024, so a model trained on older years has to lean on recent counts. They
   carry most of its gain.
+
+## Serving (#25)
+
+`train-model` refits the model on every day in the data, with the 50 boosting rounds chosen here, and stores its
+probabilities for the seven days after the data ends, per station and hour. Recent counts are the ones known on
+the last day, since later days haven't happened yet.
+
+The commute check combines a trip's cells into the chance of at least one 5+ minute delay: each station's hourly
+probability, weighted by the share of that hour inside the trip's window, assuming delays spread evenly within an
+hour. Cells are treated as independent, which overstates the chance a little when one disruption hits several
+stations. On the full history, the model's chance lands close to what happened since 2025:
+
+| Trip | Model, week after the data | 5+ minute delay since 2025 |
+|---|---|---|
+| Kipling → St George, Monday 07:45 | 9.4% | 8 of 87 Mondays (9.2%) |
+| Bloor-Yonge → Union, Friday 08:15 | 4.2% | 3 of 87 Fridays (3.4%) |
+| Finch → Eglinton, Wednesday 17:30 | 4.1% | 3 of 87 Wednesdays (3.4%) |
+

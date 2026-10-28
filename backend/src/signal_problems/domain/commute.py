@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
@@ -32,6 +33,28 @@ class Trip:
     def affects(self, moment: datetime) -> bool:
         start, end = self.window()
         return moment.weekday() == self.weekday and start <= moment.time() <= end
+
+    def hours_covered(self) -> list[tuple[int, float]]:
+        """Each hour of the day the window touches, with the share of that hour inside it."""
+        start, end = self.window()
+        first, last = start.hour * 60 + start.minute, end.hour * 60 + end.minute
+        return [
+            (hour, (min(last, hour * 60 + 60) - max(first, hour * 60)) / 60)
+            for hour in range(start.hour, end.hour + 1)
+        ]
+
+
+def chance_of_any(cells: Iterable[tuple[float, float]]) -> float:
+    """Chance of at least one delay, from each cell's hourly probability and the share of that
+    hour the trip spends in it, assuming delays are spread evenly within an hour.
+
+    ponytail: cells are treated as independent. Network-wide disruptions hit several stations at
+    once, so this overstates the chance a little; a model of whole trips would fix it.
+    """
+    none = 1.0
+    for probability, share in cells:
+        none *= (1 - probability) ** share
+    return 1 - none
 
 
 @dataclass(frozen=True, slots=True)
