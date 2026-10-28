@@ -27,7 +27,7 @@ def forecast_week(events: pd.DataFrame, stations: list[str], last: date) -> pd.D
     week = pd.concat(
         latest.assign(date=pd.Timestamp(next_day + timedelta(days=k))) for k in range(7)
     )
-    week["weekday"] = week["date"].dt.weekday.astype("int8")
+    week["weekday"] = week["date"].dt.day_of_week.astype("int8")
     week["month"] = week["date"].dt.month.astype("int8")
     week["probability"] = model.predict_proba(week[FEATURES])[:, 1]
     return week[["station_id", "date", "hour", "probability"]].reset_index(drop=True)
