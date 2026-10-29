@@ -117,7 +117,7 @@ def test_commute_risk_with_a_trained_model(client: TestClient, engine: Engine) -
         },
     ).json()
     assert body["model_day"] == "2026-09-07"
-    assert body["model_chance"] == pytest.approx(1 - 0.9**0.7)  # 08:00–08:42 at TMU
+    assert body["model_chance"] == pytest.approx(1 - 0.9 ** (38 / 60))  # 08:00–08:38 at TMU
 
 
 @pytest.mark.parametrize(

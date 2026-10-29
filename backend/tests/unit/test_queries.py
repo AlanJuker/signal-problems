@@ -146,8 +146,8 @@ def test_trip_forecast_combines_the_cells_inside_the_window() -> None:
     query = queries.CommuteQuery(Line.YONGE_UNIVERSITY, "bloor-yonge", "union", 0, time(8, 15))
     a = queries.assess_commute(FakeQueries([], FOUR_MONDAYS, forecast), TTC_SUBWAY, query)
 
-    # The window is 08:00–08:42: 70% of the 8 a.m. hour at each station
-    expected = 1 - (0.9 * 0.8) ** 0.7
+    # The window is 08:00–08:38: 38 minutes of the 8 a.m. hour at each station
+    expected = 1 - (0.9 * 0.8) ** (38 / 60)
     assert a.forecast == queries.TripForecast(date(2026, 9, 7), pytest.approx(expected))
 
 
