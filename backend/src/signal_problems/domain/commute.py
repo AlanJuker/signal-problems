@@ -1,13 +1,14 @@
+import csv
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from functools import cache
+from importlib.resources import files
+from itertools import pairwise
 
 from signal_problems.domain.lines import Line
 from signal_problems.domain.stations import Station
 
-# ponytail: a flat average stop-to-stop time. Per-segment run times from the TTC's GTFS feed would
-# make the window tighter for long trips.
-MINUTES_PER_STOP = 2
 # A delay that starts shortly before you reach the platform still holds your train.
 MARGIN_MINUTES = 15
 
@@ -24,11 +25,16 @@ class Trip:
         # Any date works; it only has to leave room on both sides of midnight.
         day = date(2000, 1, 2)
         depart = datetime.combine(day, self.departure)
-        travel = timedelta(minutes=MINUTES_PER_STOP * (len(self.stations) - 1))
+        travel = timedelta(minutes=round(self.travel_seconds() / 60))
         margin = timedelta(minutes=MARGIN_MINUTES)
         start = max(depart - margin, datetime.combine(day, time.min))
         end = min(depart + travel + margin, datetime.combine(day, time.max))
         return start.time(), end.time()
+
+    def travel_seconds(self) -> int:
+        """Scheduled time from the first station to the last, from the TTC's timetable."""
+        times = _run_times()
+        return sum(times[self.line, frozenset((a.id, b.id))] for a, b in pairwise(self.stations))
 
     def affects(self, moment: datetime) -> bool:
         start, end = self.window()
@@ -42,6 +48,17 @@ class Trip:
             (hour, (min(last, hour * 60 + 60) - max(first, hour * 60)) / 60)
             for hour in range(start.hour, end.hour + 1)
         ]
+
+
+@cache
+def _run_times() -> dict[tuple[Line, frozenset[str]], int]:
+    """Seconds between neighbouring stations, either direction (built by scripts/run_times.py)."""
+    table = files("signal_problems.domain.data").joinpath("run_times.csv")
+    with table.open(encoding="utf-8") as f:
+        return {
+            (Line(row["line"]), frozenset((row["from"], row["to"]))): int(row["seconds"])
+            for row in csv.DictReader(f)
+        }
 
 
 def chance_of_any(cells: Iterable[tuple[float, float]]) -> float:

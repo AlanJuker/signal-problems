@@ -88,6 +88,8 @@ Some decisions worth a look:
   5+ minute delay on these stations in this window?* It is easy to explain and to verify. Once the delay model is
   trained, its chance for the next Monday sits next to it. Training stores a week of forecasts in the database, so
   the API never loads scikit-learn.
+- **Windows follow the timetable.** A trip's window is its scheduled run time from the TTC's GTFS feed, ±15
+  minutes. `backend/scripts/run_times.py` rebuilds the table when the schedule changes.
 - **One API contract.** The frontend's TypeScript types are generated from the backend's OpenAPI schema, and CI
   fails if they drift apart.
 - **Accessible map.** Every station is a keyboard-operable button whose name includes its delay count, so colour
