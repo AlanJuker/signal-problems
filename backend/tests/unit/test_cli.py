@@ -61,17 +61,28 @@ def test_model_eval_prints_a_table(
     database_url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     pytest.importorskip("sklearn", reason="needs the ml dependency group")
-    from signal_problems.modeling import experiment  # noqa: PLC0415
+    from signal_problems.modeling import experiment, trips  # noqa: PLC0415
 
+    pd = experiment.pd
     report = experiment.Report(
         rows={"train": 10, "validation": 2, "test": 3},
         positive_rate={"train": 0.1, "validation": 0.1, "test": 0.2},
         chosen_iterations=50,
         test=[experiment.Scores("gradient boosting", 0.05, 0.008, 0.66, 0.02)],
-        calibration=experiment.pd.DataFrame({"predicted": [0.1], "observed": [0.1], "cells": [3]}),
+        calibration=pd.DataFrame({"predicted": [0.1], "observed": [0.1], "cells": [3]}),
+        predictions=pd.DataFrame(columns=["station_id", "date", "hour", "p"]),
+    )
+    on_trips = trips.TripReport(
+        trip_days=712 * 638,
+        observed=0.0439,
+        predicted=0.0378,
+        scores=[experiment.Scores("gradient boosting, cells combined", 0.17, 0.041, 0.70, 0.095)],
+        calibration=report.calibration,
+        by_length=pd.DataFrame({"predicted": [0.07], "observed": [0.08]}, index=[10]),
     )
     monkeypatch.setattr(cli, "DATABASE_URL", database_url)
     monkeypatch.setattr(experiment, "run", lambda *_: report)
+    monkeypatch.setattr(trips, "evaluate", lambda *_, **__: on_trips)
     cli.main(["ingest", "--csv", str(SAMPLE_CSV)])
     capsys.readouterr()
 
@@ -80,6 +91,7 @@ def test_model_eval_prints_a_table(
     out = capsys.readouterr().out
     assert "| gradient boosting | 0.05000 | 0.008000 | 0.660 | 0.0200 |" in out
     assert "Boosting rounds chosen on 2024: 50" in out
+    assert "Whole trips: 712 trips x 638 test days. Delayed: 4.39% observed, 3.78% predicted" in out
 
 
 def test_train_model_stores_a_forecast(

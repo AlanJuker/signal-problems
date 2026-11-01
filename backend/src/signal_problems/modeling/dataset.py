@@ -13,13 +13,21 @@ SERVICE_HOURS = (0, 1, *range(5, 24))
 FEATURES = ["station", "weekday", "hour", "month", "station_7d", "station_28d", "system_7d"]
 
 
-def significant_delays(connection: object) -> pd.DataFrame:
-    """One row per 5+ minute delay at a known station: station_id, date, hour."""
-    events = pd.read_sql(
+def delay_times(connection: object) -> pd.DataFrame:
+    """One row per 5+ minute delay at a known station: station_id, occurred_at."""
+    return pd.read_sql(
         "SELECT station_id, occurred_at FROM delays WHERE minutes >= 5 AND station_id IS NOT NULL",
         connection,
         parse_dates=["occurred_at"],
     )
+
+
+def significant_delays(connection: object) -> pd.DataFrame:
+    """One row per 5+ minute delay at a known station: station_id, date, hour."""
+    return by_hour(delay_times(connection))
+
+
+def by_hour(events: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "station_id": events["station_id"],

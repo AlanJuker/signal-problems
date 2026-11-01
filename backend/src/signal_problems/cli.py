@@ -85,18 +85,30 @@ def format_report(report: IngestReport) -> str:
 
 
 def run_model_eval() -> str:
-    from signal_problems.domain.stations import TTC_SUBWAY  # noqa: PLC0415
-    from signal_problems.modeling.dataset import significant_delays  # noqa: PLC0415
-    from signal_problems.modeling.experiment import run  # noqa: PLC0415
+    import pandas as pd  # noqa: PLC0415
+
+    from signal_problems.modeling import trips  # noqa: PLC0415
+    from signal_problems.modeling.dataset import by_hour, delay_times  # noqa: PLC0415
+    from signal_problems.modeling.experiment import TEST_START, TRAIN, run  # noqa: PLC0415
 
     engine = make_engine(DATABASE_URL)
     try:
         with engine.connect() as connection:
-            events = significant_delays(connection)
+            times = delay_times(connection)
     finally:
         engine.dispose()
+    events = by_hour(times)
     last = events["date"].max().date()
-    report = run(events, sorted(s.id for s in TTC_SUBWAY.all()), last)
+    stations = sorted(s.id for s in TTC_SUBWAY.all())
+    report = run(events, stations, last)
+    sample = trips.sample_trips(TTC_SUBWAY)
+    on_trips = trips.evaluate(
+        sample,
+        stations,
+        report.predictions,
+        times,
+        history=pd.date_range(TRAIN[0], TEST_START, freq="D", inclusive="left"),
+    )
     lines = [
         f"Cells: {report.rows['train']:,} train, {report.rows['validation']:,} validation, "
         f"{report.rows['test']:,} test (through {last})",
@@ -112,6 +124,22 @@ def run_model_eval() -> str:
         "",
         "Calibration of the model on the test period (deciles of predicted probability):",
         report.calibration.to_string(float_format=lambda x: f"{x:.4f}"),
+        "",
+        f"Whole trips: {len(sample):,} trips x {on_trips.trip_days // len(sample):,} test days. "
+        f"Delayed: {on_trips.observed:.2%} observed, {on_trips.predicted:.2%} predicted",
+        "",
+        "| Method | Log loss | Brier | ROC AUC | PR AUC |",
+        "|---|---|---|---|---|",
+        *(
+            f"| {s.name} | {s.log_loss:.5f} | {s.brier:.6f} | {s.roc_auc:.3f} | {s.pr_auc:.4f} |"
+            for s in on_trips.scores
+        ),
+        "",
+        "Calibration of the combined chance (deciles):",
+        on_trips.calibration.to_string(float_format=lambda x: f"{x:.4f}"),
+        "",
+        "By trip length:",
+        on_trips.by_length.to_string(float_format=lambda x: f"{x:.4f}"),
     ]
     return "\n".join(lines)
 
