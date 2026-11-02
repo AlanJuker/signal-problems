@@ -3,7 +3,7 @@
 The commute check reports a historical frequency: the share of past days on which a trip's stations had a 5+
 minute delay in its window. Before replacing it, this experiment measures whether a model predicts better.
 
-Reproduce with `uv run --group ml signal-problems model-eval` (about 30 s, after `ingest --history`).
+Reproduce with `uv run --group ml signal-problems model-eval` (about 45 s, after `ingest --history`).
 
 ## Setup
 
@@ -59,8 +59,8 @@ the last day, since later days haven't happened yet.
 
 The commute check combines a trip's cells into the chance of at least one 5+ minute delay: each station's hourly
 probability, weighted by the share of that hour inside the trip's window, assuming delays spread evenly within an
-hour. Cells are treated as independent, which overstates the chance a little when one disruption hits several
-stations. On the full history, the model's chance lands close to what happened since 2025:
+hour. Cells are treated as independent; [Whole trips](#whole-trips) measures what that costs. On the full
+history, the model's chance lands close to what happened since 2025:
 
 | Trip | Model, week after the data | 5+ minute delay since 2025 |
 |---|---|---|
@@ -68,3 +68,46 @@ stations. On the full history, the model's chance lands close to what happened s
 | Bloor-Yonge → Union, Friday 08:15 | 4.2% | 3 of 87 Fridays (3.4%) |
 | Finch → Eglinton, Wednesday 17:30 | 4.1% | 3 of 87 Wednesdays (3.4%) |
 
+
+## Whole trips
+
+The scores above are per station and hour, but the commute check shows one chance per trip. This checks that
+chance against what happened. The setup was fixed before the results:
+
+- **Trips**: every run of 3, 6 and 10 neighbouring stations on each line, leaving at 08:00, 12:00, 17:30 and
+  21:00. That's 712 trips, each scored on all 638 days of the test period (data through 30 September 2026).
+- **Outcome**: a 5+ minute delay at one of the trip's stations inside its window, to the minute, as the commute
+  check counts it.
+- **Methods**: the model's test-period cells combined as the commute check combines them, and the frequency the
+  commute check shows: the share of 2014–2024 days with the same weekday on which the trip was hit.
+- **Rule**: if the combined chance overstates what happens by more than 10%, overall or in its top tenth,
+  combining cells as independent needs a fix.
+
+| Method | Log loss ↓ | Brier ↓ | ROC AUC ↑ | PR AUC ↑ |
+|---|---|---|---|---|
+| Frequency, 2014–2024 | 0.17344 | 0.04127 | 0.698 | 0.0952 |
+| **Gradient boosting, cells combined** | **0.16954** | **0.04103** | **0.704** | 0.0952 |
+
+4.39% of trip-days had a delay, and the combined chance averages 3.78%. **It's low, not high**: low in every
+tenth (the top tenth predicts 9.8% and 11.2% happen; the bottom, 0.71% and 0.88%) and at every length.
+
+To see where the gap comes from, the second row swaps the model's probabilities for each station's actual rate
+per hour over the test period, combined the same way:
+
+| Predicted ÷ observed | 3 stations | 6 stations | 10 stations | All trips |
+|---|---|---|---|---|
+| Model's cells, combined | 0.84 | 0.86 | 0.87 | 0.86 |
+| Actual rate per station and hour, combined | 0.93 | 0.97 | 0.98 | 0.97 |
+
+- **Combining cells as independent holds up.** Fed accurate cells, it lands within 3% of what happened. The
+  error moves toward overstating as trips get longer, the direction independence predicts, but at 10 stations
+  it's still 2% low. Short trips come out 7% low. Their windows are mostly part-hours, so spreading each hour's
+  chance evenly across it is the more likely cause.
+- **The gap is in the model's cells, and it isn't a trend.** Its cells run 6% low over the test period, about
+  the same in 2025 and 2026. Its daily pattern is too flat: 14–15% low at 8 a.m., noon and 5 p.m., where most
+  of these trips' windows fall, and 10–11% high at 7 a.m., 2 p.m. and 7 p.m.
+
+### Decision
+
+The rule didn't trigger, so the combination stays. Per trip, the model still beats the frequency (log loss
+−2.3%), so the commute check keeps showing it. The model's flat daily pattern is tracked in #36.

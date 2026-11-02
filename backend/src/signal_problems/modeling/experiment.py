@@ -82,6 +82,7 @@ class Report:
     chosen_iterations: int
     test: list[Scores]
     calibration: pd.DataFrame
+    predictions: pd.DataFrame  # the model's test cells: station_id, date, hour, p
 
 
 def run(
@@ -124,4 +125,5 @@ def run(
         chosen_iterations=chosen,
         test=results,
         calibration=calibration(test["label"], model_p),
+        predictions=test[["station_id", "date", "hour"]].assign(p=model_p),
     )

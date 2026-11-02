@@ -56,4 +56,6 @@ def test_run_scores_every_method_on_the_test_period() -> None:
         "gradient boosting",
     ]
     assert report.rows["test"] == 2 * 90 * 21
+    assert len(report.predictions) == report.rows["test"]
+    assert report.predictions["p"].between(0, 1).all()
     assert all(s.roc_auc > 0.9 for s in report.test)
