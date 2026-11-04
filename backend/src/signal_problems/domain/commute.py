@@ -65,7 +65,7 @@ def chance_of_any(cells: Iterable[tuple[float, float]]) -> float:
     """Chance of at least one delay, from each cell's hourly probability and the share of that
     hour the trip spends in it, assuming delays are spread evenly within an hour.
 
-    ponytail: cells are treated as independent. On 712 trips over 2025–2026 that lands within 3%
+    ponytail: cells are treated as independent. On 712 trips over 2025–2026 that lands 3% short
     of what happened, drifting up with trip length (docs/experiments/commute-model.md); a model of
     whole trips would remove the assumption.
     """

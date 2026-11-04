@@ -80,8 +80,8 @@ chance against what happened. The setup was fixed before the results:
 
 - **Trips**: every run of 3, 6 and 10 neighbouring stations on each line, leaving at 08:00, 12:00, 17:30 and
   21:00. That's 712 trips, each scored on all 638 days of the test period (data through 30 September 2026).
-- **Outcome**: a 5+ minute delay at one of the trip's stations inside its window, to the minute, as the commute
-  check counts it.
+- **Outcome**: a 5+ minute delay at one of the trip's stations inside its window (sized from the TTC's
+  scheduled run times), to the minute, as the commute check counts it.
 - **Methods**: the model's test-period cells combined as the commute check combines them, and the frequency the
   commute check shows: the share of 2014–2024 days with the same weekday on which the trip was hit.
 - **Rule**: if the combined chance overstates what happens by more than 10%, overall or in its top tenth,
@@ -89,21 +89,21 @@ chance against what happened. The setup was fixed before the results:
 
 | Method | Log loss ↓ | Brier ↓ | ROC AUC ↑ | PR AUC ↑ |
 |---|---|---|---|---|
-| Frequency, 2014–2024 | 0.17344 | 0.04127 | 0.698 | 0.0952 |
-| **Gradient boosting, cells combined** | **0.16954** | **0.04103** | **0.704** | 0.0952 |
+| Frequency, 2014–2024 | 0.16812 | 0.03954 | 0.693 | 0.0906 |
+| **Gradient boosting, cells combined** | **0.16428** | **0.03932** | **0.699** | **0.0912** |
 
-4.39% of trip-days had a delay, and the combined chance averages 3.78%. **It's low, not high**: low in every
-tenth (the top tenth predicts 9.8% and 11.2% happen; the bottom, 0.71% and 0.88%) and at every length.
+4.19% of trip-days had a delay, and the combined chance averages 3.61%. **It's low, not high**: low in every
+tenth (the top tenth predicts 9.3% and 10.7% happen; the bottom, 0.69% and 0.88%) and at every length.
 
 To see where the gap comes from, the second row swaps the model's probabilities for each station's actual rate
 per hour over the test period, combined the same way:
 
 | Predicted ÷ observed | 3 stations | 6 stations | 10 stations | All trips |
 |---|---|---|---|---|
-| Model's cells, combined | 0.84 | 0.86 | 0.87 | 0.86 |
-| Actual rate per station and hour, combined | 0.93 | 0.97 | 0.98 | 0.97 |
+| Model's cells, combined | 0.83 | 0.86 | 0.87 | 0.86 |
+| Actual rate per station and hour, combined | 0.93 | 0.96 | 0.98 | 0.97 |
 
-- **Combining cells as independent holds up.** Fed accurate cells, it lands within 3% of what happened. The
+- **Combining cells as independent holds up.** Fed accurate cells, it lands 3% short of what happened. The
   error moves toward overstating as trips get longer, the direction independence predicts, but at 10 stations
   it's still 2% low. Short trips come out 7% low. Their windows are mostly part-hours, so spreading each hour's
   chance evenly across it is the more likely cause.
