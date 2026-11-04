@@ -4,6 +4,7 @@ from dataclasses import astuple, dataclass
 from typing import Protocol
 
 from signal_problems.domain.delays import Delay
+from signal_problems.domain.surface import SurfaceDelay
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,5 +37,11 @@ class DelaySource(Protocol):
 
 class DelayRepository(Protocol):
     def add_new(self, delays: Sequence[Delay]) -> int:
+        """Store delays whose fingerprint isn't stored yet. Returns how many were inserted."""
+        ...
+
+
+class SurfaceDelayRepository(Protocol):
+    def add_new(self, delays: Sequence[SurfaceDelay]) -> int:
         """Store delays whose fingerprint isn't stored yet. Returns how many were inserted."""
         ...

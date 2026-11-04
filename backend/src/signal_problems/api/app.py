@@ -12,16 +12,20 @@ from signal_problems.api.schemas import (
     CommuteOut,
     CommuteRequest,
     LineOut,
+    LocationCountOut,
+    RouteOut,
+    RouteProfileOut,
     StationCountOut,
     StationHeatOut,
     StationOut,
     StationProfileOut,
     SummaryOut,
 )
-from signal_problems.application import queries
+from signal_problems.application import queries, routes
 from signal_problems.domain.lines import Line
 from signal_problems.domain.stations import TTC_SUBWAY
-from signal_problems.infrastructure.database import SqlDelayQueries, make_engine
+from signal_problems.domain.surface import Mode
+from signal_problems.infrastructure.database import SqlDelayQueries, SqlRouteQueries, make_engine
 from signal_problems.infrastructure.settings import DATABASE_URL
 
 
@@ -39,6 +43,12 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
             yield SqlDelayQueries(session)
 
     Queries = Annotated[queries.DelayQueries, Depends(get_queries)]
+
+    def get_route_queries() -> Iterator[routes.RouteQueries]:
+        with session_factory() as session:
+            yield SqlRouteQueries(session)
+
+    RouteQueries = Annotated[routes.RouteQueries, Depends(get_route_queries)]
     Since = Annotated[date | None, Query(description="Only count delays from this day on")]
 
     @app.get("/health", include_in_schema=False)
@@ -92,6 +102,25 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
             minutes_lost=p.minutes_lost,
             categories=p.categories,
             top_causes=[CauseOut.of(c) for c in p.top_causes],
+            by_weekday_hour=p.by_weekday_hour,
+        )
+
+    @app.get("/routes")
+    def get_routes(mode: Mode, q: RouteQueries, since: Since = None) -> list[RouteOut]:
+        """Streetcar or bus routes, the most 5+ minute delays first."""
+        return [RouteOut.of(mode, h) for h in routes.route_ranking(q, mode, since)]
+
+    @app.get("/routes/{mode}/{route}", responses={404: {"description": "No delays on that route"}})
+    def get_route(mode: Mode, route: int, q: RouteQueries, since: Since = None) -> RouteProfileOut:
+        try:
+            p = routes.route_profile(q, mode, route, since)
+        except routes.RouteNotFoundError:
+            raise HTTPException(404, f"No delays logged on {mode} route {route}") from None
+        return RouteProfileOut(
+            route=RouteOut.of(mode, p.heat),
+            categories=p.categories,
+            top_causes=[CauseOut.of(c) for c in p.top_causes],
+            top_locations=[LocationCountOut(location=loc, delays=n) for loc, n in p.top_locations],
             by_weekday_hour=p.by_weekday_hour,
         )
 

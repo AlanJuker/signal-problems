@@ -168,6 +168,137 @@
         }
       }
     },
+    "/routes": {
+      "get": {
+        "summary": "Get Routes",
+        "description": "Streetcar or bus routes, the most 5+ minute delays first.",
+        "operationId": "get_routes_routes_get",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Mode"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only count delays from this day on",
+              "title": "Since"
+            },
+            "description": "Only count delays from this day on"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RouteOut"
+                  },
+                  "title": "Response Get Routes Routes Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/routes/{mode}/{route}": {
+      "get": {
+        "summary": "Get Route",
+        "operationId": "get_route_routes__mode___route__get",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Mode"
+            }
+          },
+          {
+            "name": "route",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Route"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only count delays from this day on",
+              "title": "Since"
+            },
+            "description": "Only count delays from this day on"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteProfileOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No delays on that route"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/commute/risk": {
       "post": {
         "summary": "Post Commute Risk",
@@ -438,6 +569,123 @@
           "stations"
         ],
         "title": "LineOut"
+      },
+      "LocationCountOut": {
+        "properties": {
+          "location": {
+            "type": "string",
+            "title": "Location",
+            "description": "As logged, usually an intersection"
+          },
+          "delays": {
+            "type": "integer",
+            "title": "Delays"
+          }
+        },
+        "type": "object",
+        "required": [
+          "location",
+          "delays"
+        ],
+        "title": "LocationCountOut"
+      },
+      "Mode": {
+        "type": "string",
+        "enum": [
+          "streetcar",
+          "bus"
+        ],
+        "title": "Mode"
+      },
+      "RouteOut": {
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "route": {
+            "type": "integer",
+            "title": "Route"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Most common logged name, e.g. \"504 King\""
+          },
+          "incidents": {
+            "type": "integer",
+            "title": "Incidents"
+          },
+          "significant": {
+            "type": "integer",
+            "title": "Significant",
+            "description": "Delays of 5 minutes or more"
+          },
+          "minutes_lost": {
+            "type": "integer",
+            "title": "Minutes Lost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "route",
+          "name",
+          "incidents",
+          "significant",
+          "minutes_lost"
+        ],
+        "title": "RouteOut"
+      },
+      "RouteProfileOut": {
+        "properties": {
+          "route": {
+            "$ref": "#/components/schemas/RouteOut"
+          },
+          "categories": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/CauseCategory"
+            },
+            "type": "object",
+            "title": "Categories"
+          },
+          "top_causes": {
+            "items": {
+              "$ref": "#/components/schemas/CauseOut"
+            },
+            "type": "array",
+            "title": "Top Causes"
+          },
+          "top_locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationCountOut"
+            },
+            "type": "array",
+            "title": "Top Locations"
+          },
+          "by_weekday_hour": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "By Weekday Hour",
+            "description": "5+ minute delays per [weekday][hour], Monday = 0"
+          }
+        },
+        "type": "object",
+        "required": [
+          "route",
+          "categories",
+          "top_causes",
+          "top_locations",
+          "by_weekday_hour"
+        ],
+        "title": "RouteProfileOut"
       },
       "StationCountOut": {
         "properties": {
