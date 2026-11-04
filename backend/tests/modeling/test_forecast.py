@@ -10,7 +10,7 @@ from signal_problems.modeling.forecast import forecast_week
 
 
 def test_forecasts_the_seven_days_after_the_data() -> None:
-    days = pd.date_range("2026-07-01", "2026-08-31", freq="D")
+    days = pd.date_range("2026-01-01", "2026-08-31", freq="D")  # the correction holds out 182
     # "a" is delayed every morning at 8, "b" never is
     events = pd.DataFrame({"station_id": "a", "date": days, "hour": 8})
 

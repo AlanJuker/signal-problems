@@ -6,7 +6,16 @@ import pytest
 
 pytest.importorskip("sklearn", reason="needs the ml dependency group")
 
-from signal_problems.modeling.experiment import PRIOR_CELLS, calibration, frequency, run, score
+from signal_problems.modeling.experiment import (
+    CORRECTION_PRIOR,
+    PRIOR_CELLS,
+    calibration,
+    correct_hours,
+    frequency,
+    hour_factors,
+    run,
+    score,
+)
 
 
 def frame(station: str, weekday: int, hour: int, labels: list[int]) -> pd.DataFrame:
@@ -22,6 +31,20 @@ def test_frequency_is_smoothed_toward_the_overall_rate() -> None:
     overall = 0.5
     assert p[0] == pytest.approx((20 + PRIOR_CELLS * overall) / (20 + PRIOR_CELLS))
     assert p[1] == pytest.approx(overall)  # a group never seen falls back to the overall rate
+
+
+def test_hour_factors_only_look_at_earlier_days() -> None:
+    days = pd.date_range("2025-01-06", periods=3)
+    # Every day: a delay at 8 a.m. and none at 9, both predicted at 0.5
+    cells = pd.DataFrame({"date": days.repeat(2), "hour": [8, 9] * 3, "label": [1, 0] * 3})
+    p = np.full(6, 0.5)
+
+    factors = hour_factors(cells, p)
+
+    assert factors.loc[days[0]].tolist() == [1.0, 1.0]  # nothing before the first day
+    assert factors.loc[days[2], 8] == pytest.approx((2 + CORRECTION_PRIOR) / (1 + CORRECTION_PRIOR))
+    assert factors.loc[days[2], 9] == pytest.approx(CORRECTION_PRIOR / (1 + CORRECTION_PRIOR))
+    assert correct_hours(cells, p)[4] == pytest.approx(0.5 * factors.loc[days[2], 8])
 
 
 def test_score_rewards_better_probabilities() -> None:
@@ -54,6 +77,7 @@ def test_run_scores_every_method_on_the_test_period() -> None:
         "frequency, 2014–2024",
         "frequency, last 12 months (2024)",
         "gradient boosting",
+        "gradient boosting, hourly correction",
     ]
     assert report.rows["test"] == 2 * 90 * 21
     assert len(report.predictions) == report.rows["test"]

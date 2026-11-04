@@ -21,6 +21,10 @@ VALIDATION = (date(2024, 1, 1), date(2024, 12, 31))
 TEST_START = date(2025, 1, 1)
 GROUP = ["station_id", "weekday", "hour"]
 PRIOR_CELLS = 20  # smoothing: a group with no history falls back to the overall rate
+# Hourly correction (#36), both chosen on 2024: from 28, 91, 182 or 365 days, and a prior of 10, 30
+# or 100 delays, which pulls an hour with few delays toward no correction
+CORRECTION_DAYS = 182
+CORRECTION_PRIOR = 30
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,28 @@ def frequency(history: pd.DataFrame, target: pd.DataFrame) -> Probabilities:
     looked_up = target.join(rate.rename("p"), on=GROUP)["p"].fillna(overall)
     probabilities: Probabilities = looked_up.to_numpy(dtype=np.float64)
     return probabilities
+
+
+def hour_factors(cells: pd.DataFrame, p: Probabilities) -> pd.DataFrame:
+    """Observed ÷ predicted delays per hour (columns) over all stations and the CORRECTION_DAYS
+    days before each date (rows), shrunk toward 1. A date never sees its own labels."""
+    daily = (
+        cells[["date", "hour", "label"]]
+        .assign(p=p)
+        .groupby(["date", "hour"])[["label", "p"]]
+        .sum()
+        .unstack("hour")
+    )
+    past = daily.rolling(CORRECTION_DAYS, min_periods=1).sum().shift(1).fillna(0)
+    return (past["label"] + CORRECTION_PRIOR) / (past["p"] + CORRECTION_PRIOR)
+
+
+def correct_hours(cells: pd.DataFrame, p: Probabilities) -> Probabilities:
+    """`p` times its hour's factor on its date: the model's own recent errors, by hour."""
+    factor = hour_factors(cells, p).stack().rename("factor")
+    scaled = p * cells.join(factor, on=["date", "hour"])["factor"].to_numpy(dtype=np.float64)
+    corrected: Probabilities = np.minimum(scaled, 1.0)
+    return corrected
 
 
 def fit_model(train: pd.DataFrame, max_iter: int) -> HistGradientBoostingClassifier:
@@ -81,8 +107,8 @@ class Report:
     positive_rate: dict[str, float]
     chosen_iterations: int
     test: list[Scores]
-    calibration: pd.DataFrame
-    predictions: pd.DataFrame  # the model's test cells: station_id, date, hour, p
+    calibration: pd.DataFrame  # of the served (corrected) probabilities
+    predictions: pd.DataFrame  # the served test cells: station_id, date, hour, p
 
 
 def run(
@@ -109,11 +135,14 @@ def run(
     chosen = min(losses, key=lambda n: losses[n])
     before_test = pd.concat([train, validation])
     model_p = fit_model(before_test, chosen).predict_proba(test[FEATURES])[:, 1]
+    # What the commute check serves: each test day corrected by the model's errors before it
+    served = correct_hours(test, model_p)
 
     results = [
         score("frequency, 2014–2024", test["label"], frequency(before_test, test)),
         score("frequency, last 12 months (2024)", test["label"], frequency(validation, test)),
         score("gradient boosting", test["label"], model_p),
+        score("gradient boosting, hourly correction", test["label"], served),
     ]
     return Report(
         rows={"train": len(train), "validation": len(validation), "test": len(test)},
@@ -124,6 +153,6 @@ def run(
         },
         chosen_iterations=chosen,
         test=results,
-        calibration=calibration(test["label"], model_p),
-        predictions=test[["station_id", "date", "hour"]].assign(p=model_p),
+        calibration=calibration(test["label"], served),
+        predictions=test[["station_id", "date", "hour"]].assign(p=served),
     )
