@@ -171,6 +171,7 @@ docs/adr/            # architecture decision records
       modest margin ([write-up](docs/experiments/commute-model.md))
 - [x] Serve the model's probability in the commute check, next to the frequency
 - [x] Check the combined chance on whole trips: combining cells holds up; the model's cells run low at peak hours (#36)
+- [x] Correct the model's hourly bias with its own recent errors: commute hours go from about 15% low to 6% low (#36)
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
 - [x] Choose the period every view is based on, kept in the URL
 - [ ] Bus and streetcar delay logs

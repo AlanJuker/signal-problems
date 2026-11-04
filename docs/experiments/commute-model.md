@@ -54,19 +54,23 @@ a modest gain, so the frequency's simple explanation ("24 of 87 Fridays") stays 
 ## Serving (#25)
 
 `train-model` refits the model on every day in the data, with the 50 boosting rounds chosen here, and stores its
-probabilities for the seven days after the data ends, per station and hour. Recent counts are the ones known on
-the last day, since later days haven't happened yet.
+probabilities for the seven days after the data ends, per station and hour, scaled by the
+[hourly correction](#hourly-correction-36). Recent counts are the ones known on the last day, since later days
+haven't happened yet.
 
 The commute check combines a trip's cells into the chance of at least one 5+ minute delay: each station's hourly
 probability, weighted by the share of that hour inside the trip's window, assuming delays spread evenly within an
 hour. Cells are treated as independent; [Whole trips](#whole-trips) measures what that costs. On the full
-history, the model's chance lands close to what happened since 2025:
+history, through 30 September 2026:
 
 | Trip | Model, week after the data | 5+ minute delay since 2025 |
 |---|---|---|
-| Kipling → St George, Monday 07:45 | 9.4% | 8 of 87 Mondays (9.2%) |
-| Bloor-Yonge → Union, Friday 08:15 | 4.2% | 3 of 87 Fridays (3.4%) |
-| Finch → Eglinton, Wednesday 17:30 | 4.1% | 3 of 87 Wednesdays (3.4%) |
+| Kipling → St George, Monday 07:45 | 7.9% | 6 of 91 Mondays (6.6%) |
+| Bloor-Yonge → Union, Friday 08:15 | 5.1% | 3 of 91 Fridays (3.3%) |
+| Finch → Eglinton, Wednesday 17:30 | 4.5% | 3 of 92 Wednesdays (3.3%) |
+
+Single trips are only a sanity check: 3 days in 91 fits a true chance anywhere from 0.7% to 9.3% (95%
+interval). [Whole trips](#whole-trips) scores 712 trips over every test day.
 
 
 ## Whole trips
@@ -111,3 +115,61 @@ per hour over the test period, combined the same way:
 
 The rule didn't trigger, so the combination stays. Per trip, the model still beats the frequency (log loss
 −2.3%), so the commute check keeps showing it. The model's flat daily pattern is tracked in #36.
+
+## Hourly correction (#36)
+
+[Whole trips](#whole-trips) found the model's cells running low at the hours most trips fall in. Treating hour
+as a category, weighting recent years and bigger trees didn't bring whole trips within the ±5% that #36 set
+(0.90 at best; the table is in the issue). Correcting the model with its own recent errors gets closer:
+
+- **Correction**: each probability is multiplied by its hour's observed ÷ predicted delays over the previous
+  182 days, all stations together. A prior of 30 delays on both sides pulls an hour with few delays toward no
+  correction. A day never sees its own labels.
+- **Chosen on 2024**, with the model fit on 2014–2023: 182 days and a prior of 30, out of 28, 91, 182 or 365
+  days and 10, 30 or 100 (log loss on 2024 0.05224 → 0.05212).
+- **Rule**, from #36: whole-trip predicted ÷ observed within ±5%, overall and in the top tenth, and cell log
+  loss no worse than 0.04829.
+
+On the test period, with data through 30 September 2026 (so the first row differs a little from
+[Results](#results-on-january-2025--august-2026)):
+
+| | Cells: log loss ↓ | Cells: PR AUC ↑ | Trips: log loss ↓ | Trips: predicted ÷ observed | Top tenth of trips |
+|---|---|---|---|---|---|
+| Gradient boosting | 0.04829 | 0.0201 | 0.16428 | 0.86 | 0.87 |
+| **With the hourly correction** | **0.04825** | **0.0203** | **0.16384** | 0.93 | 0.94 |
+
+| Cells, predicted ÷ observed | 8 a.m. | Noon | 5 p.m. | 10 p.m. |
+|---|---|---|---|---|
+| Gradient boosting | 0.86 | 0.86 | 0.85 | 0.82 |
+| With the hourly correction | 0.96 | 0.97 | 0.96 | 0.96 |
+
+- **The rule isn't met.** Whole trips are still 7% low, and about 3 points of that is the combination itself,
+  which lands 3% short even when given actual rates.
+- **The top tenth of cells now runs high**: 2.43% predicted, 2.23% observed. Scaling an hour up raises its
+  riskiest cells as well. On whole trips the top tenth is still low (10.15% predicted, 10.77% observed).
+- **It isn't one lucky setting.** The neighbours of the chosen one (91 or 365 days, a prior of 10 or 100) also
+  improve both log losses on the test period. It holds in each test year alone: predicted ÷ observed goes from
+  0.935 to 0.982 in 2025 and from 0.941 to 0.997 in 2026.
+
+### Serving it
+
+`train-model` refits on all the data every time, so it has no unseen recent days to measure errors on. A
+second model that stops 182 days before the data ends supplies them, and its factors scale the full model's
+forecasts. With no data before those 182 days, it serves the model uncorrected. This was backtested against the old `train-model` on 15 weekly forecasts, one starting on the first
+of each month from July 2025 to September 2026. Each used only the data before its week:
+
+| Weekly forecasts | Log loss ↓ | Predicted ÷ observed | 8 a.m. | 5 p.m. | 10 p.m. |
+|---|---|---|---|---|---|
+| Model on all data (before) | 0.04717 | 0.97 | 0.85 | 0.84 | 0.76 |
+| Held-out model, corrected | 0.04719 | 1.01 | 0.94 | 0.94 | 0.90 |
+| **Model on all data × held-out factors (now)** | **0.04714** | 1.02 | 0.94 | 0.94 | 0.91 |
+
+Losing 6 months of training cost the held-out model about what the correction gained. The third row was tried
+after seeing that, and it beats the old forecast in 10 of the 15 weeks.
+
+### Decision
+
+Serve the third row. Its log loss gain is small (10 of 15 weeks happens by chance 15% of the time), but at
+commute hours the chance the commute check shows goes from about 15% low to about 6% low. The cost is the top
+tenth of cells running 9% high. #36 stays open, since whole trips are still outside ±5%.
+

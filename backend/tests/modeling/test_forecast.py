@@ -9,8 +9,12 @@ from signal_problems.modeling.dataset import SERVICE_HOURS
 from signal_problems.modeling.forecast import forecast_week
 
 
-def test_forecasts_the_seven_days_after_the_data() -> None:
-    days = pd.date_range("2026-07-01", "2026-08-31", freq="D")
+@pytest.mark.parametrize(
+    "first",
+    ["2026-07-01", "2026-01-01"],  # too short for the hourly correction, and long enough for it
+)
+def test_forecasts_the_seven_days_after_the_data(first: str) -> None:
+    days = pd.date_range(first, "2026-08-31", freq="D")
     # "a" is delayed every morning at 8, "b" never is
     events = pd.DataFrame({"station_id": "a", "date": days, "hour": 8})
 

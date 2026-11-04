@@ -122,7 +122,7 @@ def run_model_eval() -> str:
             for s in report.test
         ),
         "",
-        "Calibration of the model on the test period (deciles of predicted probability):",
+        "Calibration of the corrected model on the test period (deciles of predicted probability):",
         report.calibration.to_string(float_format=lambda x: f"{x:.4f}"),
         "",
         f"Whole trips: {len(sample):,} trips x {on_trips.trip_days // len(sample):,} test days. "
