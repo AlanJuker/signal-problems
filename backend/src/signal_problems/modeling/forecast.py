@@ -25,19 +25,21 @@ def forecast_week(events: pd.DataFrame, stations: list[str], last: date) -> pd.D
     cells = build_cells(events, stations, first, next_day)
     model = fit_model(cells[cells["date"] <= pd.Timestamp(last)], ITERATIONS)
 
-    # The correction needs the model's errors on days it hasn't seen, so it comes from a second
-    # model that stops CORRECTION_DAYS before the data ends
-    start = pd.Timestamp(next_day - timedelta(days=CORRECTION_DAYS))
-    held_out = fit_model(cells[cells["date"] < start], ITERATIONS)
-    recent = cells[cells["date"] >= start]
-    factors = hour_factors(recent, held_out.predict_proba(recent[FEATURES])[:, 1])
-
     latest = cells[cells["date"] == pd.Timestamp(next_day)]
     week = pd.concat(
         latest.assign(date=pd.Timestamp(next_day + timedelta(days=k))) for k in range(7)
     )
     week["weekday"] = week["date"].dt.day_of_week.astype("int8")
     week["month"] = week["date"].dt.month.astype("int8")
-    factor = week["hour"].map(factors.loc[pd.Timestamp(next_day)]).to_numpy()
-    week["probability"] = np.minimum(model.predict_proba(week[FEATURES])[:, 1] * factor, 1.0)
+    week["probability"] = model.predict_proba(week[FEATURES])[:, 1]
+
+    # The correction needs the model's errors on days it hasn't seen, so it comes from a second
+    # model that stops CORRECTION_DAYS before the data ends. With less data than that, none.
+    start = pd.Timestamp(next_day - timedelta(days=CORRECTION_DAYS))
+    if (cells["date"] < start).any():
+        held_out = fit_model(cells[cells["date"] < start], ITERATIONS)
+        recent = cells[cells["date"] >= start]
+        factors = hour_factors(recent, held_out.predict_proba(recent[FEATURES])[:, 1])
+        factor = week["hour"].map(factors.loc[pd.Timestamp(next_day)])
+        week["probability"] = np.minimum(week["probability"] * factor, 1.0)
     return week[["station_id", "date", "hour", "probability"]].reset_index(drop=True)

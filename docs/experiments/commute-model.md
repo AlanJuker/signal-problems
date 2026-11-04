@@ -155,7 +155,7 @@ On the test period, with data through 30 September 2026 (so the first row differ
 
 `train-model` refits on all the data every time, so it has no unseen recent days to measure errors on. A
 second model that stops 182 days before the data ends supplies them, and its factors scale the full model's
-forecasts. This was backtested against the old `train-model` on 15 weekly forecasts, one starting on the first
+forecasts. With no data before those 182 days, it serves the model uncorrected. This was backtested against the old `train-model` on 15 weekly forecasts, one starting on the first
 of each month from July 2025 to September 2026. Each used only the data before its week:
 
 | Weekly forecasts | Log loss ↓ | Predicted ÷ observed | 8 a.m. | 5 p.m. | 10 p.m. |
