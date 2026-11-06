@@ -26,3 +26,9 @@ def test_each_mode_has_its_own_code_list() -> None:
     assert cause_for("MTSAN", "streetcar").category is CauseCategory.PASSENGERS_AND_OTHER
     assert cause_for("EFD", "bus").description == "DOORS"
     assert cause_for("EFD").description is None  # not a subway code
+
+
+def test_code_list_dashes_are_repaired() -> None:
+    # The published lists encode "–" twice, so it reads "â\x80\x93"
+    assert cause_for("MTUI", "streetcar").description == "INJURIED/ILL CUSTOMER – TRANSPORTED"
+    assert cause_for("SFAP", "bus").description == "ASSAULT – PATRON"
