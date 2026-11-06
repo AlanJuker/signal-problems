@@ -1,9 +1,6 @@
 import { useStation } from "../../api/hooks";
-import { CATEGORY_LABELS, describeCause } from "../causes";
-import { WeekHourGrid } from "./WeekHourGrid";
+import { Breakdown } from "../Breakdown";
 import "./StationPanel.css";
-
-const number = new Intl.NumberFormat("en-CA");
 
 interface Props {
   stationId: string | null;
@@ -29,9 +26,6 @@ export function StationPanel({ stationId, since }: Props) {
     );
   }
 
-  const categories = Object.entries(data.categories).sort(([, a], [, b]) => b - a);
-  const top = categories[0]?.[1] ?? 1;
-
   return (
     <aside className="panel" aria-labelledby="station-name">
       <header>
@@ -44,50 +38,7 @@ export function StationPanel({ stationId, since }: Props) {
           ))}
         </ul>
       </header>
-
-      <dl className="stats">
-        <div>
-          <dt>Delays of 5+ min</dt>
-          <dd>{number.format(data.significant)}</dd>
-        </div>
-        <div>
-          <dt>Minutes lost</dt>
-          <dd>{number.format(data.minutes_lost)}</dd>
-        </div>
-        <div>
-          <dt>Logged incidents</dt>
-          <dd>{number.format(data.incidents)}</dd>
-        </div>
-      </dl>
-
-      <h3>What causes them</h3>
-      <ul className="bars">
-        {categories.map(([category, count]) => (
-          <li key={category}>
-            <span>{CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}</span>
-            <span className="bar" aria-hidden="true">
-              <span style={{ width: `${(count / top) * 100}%` }} />
-            </span>
-            <span className="count">{count}</span>
-          </li>
-        ))}
-      </ul>
-
-      <h3>Most common reasons</h3>
-      <ol className="causes">
-        {data.top_causes.map((cause) => (
-          <li key={cause.code}>
-            <span>
-              {describeCause(cause)}
-              {cause.is_signal_problem && <span className="tag">signal failure</span>}
-            </span>
-            <span className="count">{cause.count}</span>
-          </li>
-        ))}
-      </ol>
-
-      <h3>When</h3>
-      <WeekHourGrid grid={data.by_weekday_hour} />
+      <Breakdown totals={data} profile={data} />
     </aside>
   );
 }
