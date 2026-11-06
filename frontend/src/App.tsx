@@ -5,6 +5,7 @@ import { useSearchParam } from "./useSearchParam";
 
 import { useLines, useStationHeat, useSummary } from "./api/hooks";
 import { CommuteCheck } from "./features/commute/CommuteCheck";
+import { RoutesSection } from "./features/routes/RoutesSection";
 import { SubwayMap } from "./features/map/SubwayMap";
 import { StationPanel } from "./features/station/StationPanel";
 import { Hero } from "./features/summary/Hero";
@@ -23,7 +24,7 @@ export function App() {
     <>
       <Hero />
       <main>
-        <fieldset className="period">
+        <fieldset className="pills">
           <legend>Based on</legend>
           {(Object.keys(PERIODS) as Period[]).map((key) => (
             <label key={key}>
@@ -59,11 +60,13 @@ export function App() {
           <StationPanel stationId={selected} since={since} />
           {lines.data && <CommuteCheck lines={lines.data} since={since} onResult={setTrip} />}
         </div>
+        <RoutesSection since={since} />
       </main>
       <footer>
-        Data:{" "}
-        <a href="https://open.toronto.ca/dataset/ttc-subway-delay-data/">TTC Subway Delay Data</a>,
-        Toronto Open Data, under the{" "}
+        Data: <a href="https://open.toronto.ca/dataset/ttc-subway-delay-data/">TTC Subway</a>,{" "}
+        <a href="https://open.toronto.ca/dataset/ttc-streetcar-delay-data/">Streetcar</a> and{" "}
+        <a href="https://open.toronto.ca/dataset/ttc-bus-delay-data/">Bus Delay Data</a>, Toronto
+        Open Data, under the{" "}
         <a href="https://open.toronto.ca/open-data-license/">Open Government Licence – Toronto</a>.
         Not affiliated with the TTC.
       </footer>

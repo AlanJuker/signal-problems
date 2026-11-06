@@ -101,6 +101,39 @@ export const COMMUTE: Schemas["CommuteOut"] = {
   top_causes: UNION.top_causes,
 };
 
+const route = (mode: Schemas["Mode"], number: number, name: string, significant: number) => ({
+  mode,
+  route: number,
+  name,
+  incidents: significant + 50,
+  significant,
+  minutes_lost: significant * 20,
+});
+
+export const ROUTES: Record<Schemas["Mode"], Schemas["RouteOut"][]> = {
+  streetcar: [
+    route("streetcar", 504, "504 King", 3_349),
+    route("streetcar", 501, "501 Queen", 3_100),
+  ],
+  bus: [route("bus", 52, "52 Lawrence West", 2_262), route("bus", 7, "7 Bathurst", 1_692)],
+};
+
+const profile = (heat: Schemas["RouteOut"]): Schemas["RouteProfileOut"] => ({
+  route: heat,
+  categories: { passengers_and_other: 30, equipment: 12 },
+  top_causes: [
+    {
+      code: "MTDV",
+      description: "ON DIVERSION",
+      category: "passengers_and_other",
+      is_signal_problem: false,
+      count: 459,
+    },
+  ],
+  top_locations: [{ location: "DUNDAS WEST STATION", delays: 177 }],
+  by_weekday_hour: UNION.by_weekday_hour,
+});
+
 export const server = setupServer(
   http.get("*/api/summary", () =>
     HttpResponse.json({
@@ -119,4 +152,16 @@ export const server = setupServer(
       : HttpResponse.json({ detail: "Unknown station" }, { status: 404 }),
   ),
   http.post("*/api/commute/risk", () => HttpResponse.json(COMMUTE)),
+  http.get("*/api/routes", ({ request }) => {
+    const mode = new URL(request.url).searchParams.get("mode") as Schemas["Mode"];
+    return HttpResponse.json(ROUTES[mode]);
+  }),
+  http.get("*/api/routes/:mode/:route", ({ params }) => {
+    const heat = ROUTES[params.mode as Schemas["Mode"]].find(
+      (r) => r.route === Number(params.route),
+    );
+    return heat
+      ? HttpResponse.json(profile(heat))
+      : HttpResponse.json({ detail: "No delays logged" }, { status: 404 });
+  }),
 );
