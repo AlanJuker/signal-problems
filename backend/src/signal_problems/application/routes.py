@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
-from signal_problems.application.queries import CauseCount
+from signal_problems.application.queries import CauseCount, most_common
 from signal_problems.domain.causes import CauseCategory, cause_for
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES
 from signal_problems.domain.surface import Mode, route_label
@@ -94,8 +94,8 @@ def route_profile(
     return RouteProfile(
         heat=_heat(route, facts),
         categories=dict(Counter(cause_for(f.cause_code, mode).category for f in significant)),
-        top_causes=[CauseCount(cause_for(code, mode), n) for code, n in causes.most_common(5)],
-        top_locations=Counter(f.location for f in significant if f.location).most_common(5),
+        top_causes=[CauseCount(cause_for(code, mode), n) for code, n in most_common(causes)],
+        top_locations=most_common(Counter(f.location for f in significant if f.location)),
         by_weekday_hour=grid,
     )
 

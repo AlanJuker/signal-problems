@@ -229,4 +229,10 @@ def _within_trip(fact: DelayFact, on_trip: set[str]) -> bool:
 
 def _top_causes(facts: list[DelayFact], limit: int = 5) -> list[CauseCount]:
     counts = Counter(f.cause_code for f in facts)
-    return [CauseCount(cause_for(code), n) for code, n in counts.most_common(limit)]
+    return [CauseCount(cause_for(code), n) for code, n in most_common(counts, limit)]
+
+
+def most_common(counts: Counter[str], limit: int = 5) -> list[tuple[str, int]]:
+    """Like Counter.most_common, but ties go alphabetically instead of in the order the database
+    happened to return rows, so a profile is the same on SQLite and PostgreSQL."""
+    return sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:limit]
