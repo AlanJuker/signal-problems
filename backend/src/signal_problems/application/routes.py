@@ -101,8 +101,13 @@ def route_profile(
 
 
 def _name(spellings: dict[str, int]) -> str:
-    """Spellings vary ("504 KING", "504A KING"); the most common one names the route."""
-    return route_label(max(spellings, key=lambda name: (spellings[name], name)))
+    """Spellings vary ("504 KING", "504A KING"); the most common one names the route.
+
+    2014–2024 rows log only the number ("504"), so a spelling with a name wins over any count.
+    """
+    return route_label(
+        max(spellings, key=lambda name: (" " in name.strip(), spellings[name], name))
+    )
 
 
 def _heat(route: int, facts: Sequence[RouteFact]) -> RouteHeat:

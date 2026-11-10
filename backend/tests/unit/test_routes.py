@@ -72,6 +72,11 @@ def test_ranking_puts_the_most_5_minute_delays_first() -> None:
     assert ranking[2].incidents == 2
 
 
+def test_a_named_spelling_beats_a_more_common_bare_number() -> None:
+    facts = [fact(504, "504"), fact(504, "504"), fact(504, "504 KING")]  # 2014–2024 log the number
+    assert routes.route_ranking(FakeRouteQueries(facts), Mode.STREETCAR)[0].name == "504 King"
+
+
 def test_route_profile() -> None:
     facts = [
         fact(504, "504 KING", code="MTSAN", location="KING AND BAY"),
