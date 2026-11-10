@@ -79,12 +79,16 @@ class SurfaceDelayRecord(Base):
     route_name: Mapped[str] = mapped_column(String(80))
     occurred_at: Mapped[datetime] = mapped_column(DateTime)  # Toronto local time, as logged
     location: Mapped[str] = mapped_column(String(120))
-    cause_code: Mapped[str] = mapped_column(String(8))
+    cause_code: Mapped[str] = mapped_column(String(40))  # codes, or 2014–2024 incident words
     cause_category: Mapped[str] = mapped_column(String(24))
     minutes: Mapped[int] = mapped_column(Integer)
     gap_minutes: Mapped[int] = mapped_column(Integer)
 
-    __table_args__ = (Index("ix_surface_delays_route", "mode", "route", "occurred_at"),)
+    __table_args__ = (
+        Index("ix_surface_delays_route", "mode", "route", "occurred_at"),
+        # covers the route ranking (migration 0004)
+        Index("ix_surface_delays_totals", "mode", "route", "route_name", "minutes", "occurred_at"),
+    )
 
     @classmethod
     def from_domain(cls, delay: SurfaceDelay) -> "SurfaceDelayRecord":
