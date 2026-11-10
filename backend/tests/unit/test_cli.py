@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from signal_problems import cli
+from signal_problems.infrastructure.toronto_open_data import Package
 from tests.conftest import SAMPLE_CSV
 
 
@@ -133,6 +134,19 @@ def test_ingest_surface_mode_reports_rows_without_a_route(
     assert "(empty)" in out
 
 
-def test_history_is_subway_only() -> None:
-    with pytest.raises(SystemExit):
-        cli.main(["ingest", "--mode", "streetcar", "--history"])
+def test_surface_history_reads_that_mode_s_package(
+    database_url: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created: list[tuple[bool, str]] = []
+
+    class FakeSource:
+        def __init__(self, _client: object, *, include_history: bool, package: Package) -> None:
+            created.append((include_history, package.id))
+
+        def fetch(self) -> list[object]:
+            return []
+
+    monkeypatch.setattr(cli, "DATABASE_URL", database_url)
+    monkeypatch.setattr(cli, "TorontoOpenDataSource", FakeSource)
+    cli.main(["ingest", "--mode", "streetcar", "--history"])
+    assert created == [(True, "ttc-streetcar-delay-data")]

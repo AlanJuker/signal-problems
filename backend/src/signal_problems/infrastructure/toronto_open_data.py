@@ -1,7 +1,9 @@
 import csv
 import re
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO
@@ -10,19 +12,54 @@ import httpx
 from openpyxl import load_workbook
 
 from signal_problems.application.ports import RawDelayRow
+from signal_problems.domain.causes import incident_code
 from signal_problems.domain.surface import Mode
 
 CKAN_API = "https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action"
-PACKAGE = "ttc-subway-delay-data"
-# The current log is one CSV that grows monthly; 2014–2024 are published as yearly XLSX files.
 CURRENT_LOG = "TTC Subway Delay Data since 2025.csv"
-HISTORY = re.compile(r"^ttc-subway-delay-(data-)?.*20\d\d$")
-# Streetcars and buses: (package, current log). Their 2014–2024 files use another schema (#28).
-SURFACE = {
-    Mode.STREETCAR: ("ttc-streetcar-delay-data", "TTC Streetcar Delay Data since 2025.csv"),
-    Mode.BUS: ("ttc-bus-delay-data", "TTC Bus Delay Data since 2025.csv"),
-}
-COLUMNS = ("Date", "Time", "Station", "Line", "Code", "Min Delay", "Min Gap", "Bound", "Vehicle")
+
+# Header names for each RawDelayRow field, in field order. A field can go by several names.
+Columns = tuple[tuple[str, ...], ...]
+COLUMNS: Columns = tuple(
+    (name,)
+    for name in (
+        "Date",
+        "Time",
+        "Station",
+        "Line",
+        "Code",
+        "Min Delay",
+        "Min Gap",
+        "Bound",
+        "Vehicle",
+    )
+)
+# 2014–2024 streetcar workbooks renamed columns over the years, and log an incident word
+# ("Mechanical") where the current logs have a code.
+STREETCAR_HISTORY: Columns = (
+    ("Report Date", "Date"),
+    ("Time",),
+    ("Location",),
+    ("Route", "Line"),
+    ("Incident",),
+    ("Min Delay", "Delay"),
+    ("Min Gap", "Gap"),
+    ("Direction", "Bound"),
+    ("Vehicle",),
+)
+# Bus workbooks always say Route and Direction. The only bus sheets that say Line and Bound, July
+# and August 2021, repeat the streetcar workbook's row for row, so they're skipped.
+BUS_HISTORY: Columns = (
+    ("Report Date", "Date"),
+    ("Time",),
+    ("Location",),
+    ("Route",),
+    ("Incident",),
+    ("Min Delay", "Delay"),
+    ("Min Gap", "Gap"),
+    ("Direction",),
+    ("Vehicle",),
+)
 
 
 def parse_csv(lines: Iterable[str]) -> Iterator[RawDelayRow]:
@@ -40,7 +77,7 @@ def parse_csv(lines: Iterable[str]) -> Iterator[RawDelayRow]:
         )
 
 
-def parse_xlsx(stream: BinaryIO) -> Iterator[RawDelayRow]:
+def parse_xlsx(stream: BinaryIO, columns: Columns = COLUMNS) -> Iterator[RawDelayRow]:
     """Every sheet of a yearly workbook (some years have one sheet per month).
 
     Cells come typed (dates as datetimes, minutes as numbers); they're turned into the same text
@@ -51,26 +88,20 @@ def parse_xlsx(stream: BinaryIO) -> Iterator[RawDelayRow]:
         for sheet in workbook.worksheets:
             rows = sheet.iter_rows(values_only=True)
             header = [str(cell).strip() if cell is not None else "" for cell in next(rows, ())]
-            if not set(COLUMNS) <= set(header):
+            index = [next((header.index(n) for n in names if n in header), -1) for names in columns]
+            if -1 in index:
                 continue
-            index = {name: header.index(name) for name in COLUMNS}
             for cells in rows:
-                if not cells or cells[index["Date"]] is None:
+                if not cells or cells[index[0]] is None:
                     continue
-                value = {name: _text(cells[i]) for name, i in index.items()}
-                yield RawDelayRow(
-                    date=value["Date"],
-                    time=value["Time"],
-                    station=value["Station"],
-                    line=value["Line"],
-                    code=value["Code"],
-                    min_delay=value["Min Delay"],
-                    min_gap=value["Min Gap"],
-                    bound=value["Bound"],
-                    vehicle=value["Vehicle"],
-                )
+                yield RawDelayRow(*(_text(cells[i]) for i in index))
     finally:
         workbook.close()
+
+
+def parse_surface_history(stream: BinaryIO, columns: Columns) -> Iterator[RawDelayRow]:
+    for row in parse_xlsx(stream, columns):
+        yield replace(row, code=incident_code(row.code))
 
 
 def _text(cell: object) -> str:
@@ -85,31 +116,50 @@ def _text(cell: object) -> str:
     return str(cell).strip()
 
 
+@dataclass(frozen=True, slots=True)
+class Package:
+    """A delay log on the portal: a current log that grows monthly, and 2014–2024 workbooks."""
+
+    id: str
+    current_log: str
+    history: re.Pattern[str]
+    parse_history: Callable[[BinaryIO], Iterator[RawDelayRow]] = parse_xlsx
+
+
+SUBWAY = Package(
+    "ttc-subway-delay-data", CURRENT_LOG, re.compile(r"^ttc-subway-delay-(data-)?.*20\d\d$")
+)
+# The streetcar package also lists 2020 under a name ending in a tab; the pattern skips that copy.
+SURFACE = {
+    mode: Package(
+        f"ttc-{mode}-delay-data",
+        f"TTC {mode.title()} Delay Data since 2025.csv",
+        re.compile(rf"^ttc-{mode}-delay-data-20\d\d$"),
+        partial(parse_surface_history, columns=columns),
+    )
+    for mode, columns in ((Mode.STREETCAR, STREETCAR_HISTORY), (Mode.BUS, BUS_HISTORY))
+}
+
+
 class TorontoOpenDataSource:
-    """Downloads the delay log through the portal's CKAN API."""
+    """Downloads a delay log through the portal's CKAN API."""
 
     def __init__(
-        self,
-        client: httpx.Client,
-        *,
-        include_history: bool = False,
-        package: str = PACKAGE,
-        current_log: str = CURRENT_LOG,
+        self, client: httpx.Client, *, include_history: bool = False, package: Package = SUBWAY
     ) -> None:
         self._client = client
         self._include_history = include_history
         self._package = package
-        self._current_log = current_log
 
     def fetch(self) -> Iterator[RawDelayRow]:
-        package = self._client.get(f"{CKAN_API}/package_show", params={"id": self._package})
-        package.raise_for_status()
-        resources = package.json()["result"]["resources"]
+        response = self._client.get(f"{CKAN_API}/package_show", params={"id": self._package.id})
+        response.raise_for_status()
+        resources = response.json()["result"]["resources"]
         if self._include_history:
             for resource in resources:
-                if HISTORY.match(resource["name"]):
-                    yield from parse_xlsx(BytesIO(self._download(resource["url"])))
-        url = next(r["url"] for r in resources if r["name"] == self._current_log)
+                if self._package.history.match(resource["name"]):
+                    yield from self._package.parse_history(BytesIO(self._download(resource["url"])))
+        url = next(r["url"] for r in resources if r["name"] == self._package.current_log)
         yield from parse_csv(self._download(url).decode("utf-8-sig").splitlines())
 
     def _download(self, url: str) -> bytes:

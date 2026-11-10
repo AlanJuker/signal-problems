@@ -8,7 +8,7 @@ from signal_problems.application.ports import (
     RawDelayRow,
     SurfaceDelayRepository,
 )
-from signal_problems.domain.causes import cause_for
+from signal_problems.domain.causes import CauseCategory, cause_for
 from signal_problems.domain.delays import Delay, infer_line
 from signal_problems.domain.lines import is_scarborough_rt_only
 from signal_problems.domain.resolver import LocationKind, StationResolver
@@ -88,6 +88,7 @@ class SurfaceIngestReport:
     already_stored: int = 0
     stored: int = 0
     no_route: Counter[str] = field(default_factory=Counter)  # logged line → rows skipped
+    uncategorized: Counter[str] = field(default_factory=Counter)  # cause code → rows, kept
 
 
 def to_surface_delay(row: RawDelayRow, mode: Mode, route: int) -> SurfaceDelay:
@@ -127,6 +128,8 @@ class IngestSurfaceDelays:
             except ValueError:
                 report.malformed += 1
                 continue
+            if delay.cause.category is CauseCategory.UNKNOWN:
+                report.uncategorized[delay.cause.code] += 1
             if delay.fingerprint in delays:
                 report.duplicates += 1
             delays[delay.fingerprint] = delay
