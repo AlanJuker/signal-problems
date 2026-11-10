@@ -1,4 +1,4 @@
-.PHONY: up down ingest ingest-history ingest-surface model check check-backend check-frontend api-types
+.PHONY: up down ingest ingest-history ingest-surface ingest-surface-history model check check-backend check-frontend api-types
 
 up: ## Start PostgreSQL, the API and the web app on http://localhost:8080
 	docker compose up --build -d
@@ -15,6 +15,10 @@ ingest-history: ## Also load 2014–2024 (about 268,000 rows)
 ingest-surface: ## Also load streetcar and bus delays since 2025, by route
 	docker compose exec api signal-problems ingest --mode streetcar
 	docker compose exec api signal-problems ingest --mode bus
+
+ingest-surface-history: ## Also load streetcar and bus delays back to 2014 (~850,000 rows, ~2 min)
+	docker compose exec api signal-problems ingest --mode streetcar --history
+	docker compose exec api signal-problems ingest --mode bus --history
 
 model: ## Train the delay model and store next week's forecasts (rebuilds the API with ML=true)
 	ML=true docker compose up --build --detach --wait api
