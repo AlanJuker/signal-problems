@@ -163,7 +163,7 @@ backend/
 frontend/
   src/
     api/             # generated types, client, query hooks
-    features/        # map, station panel, commute check, hero
+    features/        # map, station panel, commute check, routes, hero
 docs/adr/            # architecture decision records
 ```
 
@@ -177,7 +177,8 @@ docs/adr/            # architecture decision records
 - [x] Correct the model's hourly bias with its own recent errors: commute hours go from about 15% low to 6% low (#36)
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
 - [x] Choose the period every view is based on, kept in the URL
-- [ ] Bus and streetcar delay logs
+- [x] Streetcar and bus delays since 2025, ranked by route in the API and the web app
+- [ ] Streetcar and bus history back to 2014 (#28)
 - [ ] Deployment
 
 ## Data
