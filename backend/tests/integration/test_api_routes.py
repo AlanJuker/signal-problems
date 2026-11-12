@@ -53,7 +53,12 @@ def test_since_filters_routes(client: TestClient) -> None:
 def test_route_profile(client: TestClient) -> None:
     body = client.get("/routes/streetcar/504").json()
     assert body["route"]["significant"] == 3
-    assert body["top_locations"][0] == {"location": "KING AND PARLIAMENT", "delays": 1}
+    # one delay each: ties go alphabetically, whatever order the database returns rows in
+    assert [loc["location"] for loc in body["top_locations"]] == [
+        "KING AND GEORGE",
+        "KING AND PARLIAMENT",
+        "LESLIE CARHOUSE",
+    ]
     assert {c["code"] for c in body["top_causes"]} == {"MTSAN", "MTVIS", "MTAFR"}
     assert body["by_weekday_hour"][2][2] == 1  # Wednesday 2 a.m.
 

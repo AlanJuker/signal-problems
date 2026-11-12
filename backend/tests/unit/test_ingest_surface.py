@@ -65,3 +65,15 @@ def test_malformed_rows_are_counted() -> None:
     )
     report = IngestSurfaceDelays(FakeSource([row]), FakeRepository(), Mode.STREETCAR)()
     assert (report.malformed, report.stored) == (1, 0)
+
+
+def test_incident_words_without_a_category_are_kept_and_reported() -> None:
+    rows = [
+        RawDelayRow("2014-01-02", "12:43", "King and Shaw", "504", word, "20", "22", "E/B", "4128")
+        for word in ("HELD BY", "MECHANICAL", "")
+    ]
+    repository = FakeRepository()
+    report = IngestSurfaceDelays(FakeSource(rows), repository, Mode.STREETCAR)()
+
+    assert report.stored == 3
+    assert report.uncategorized == {"HELD BY": 1, "": 1}

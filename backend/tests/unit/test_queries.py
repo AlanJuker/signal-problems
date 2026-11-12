@@ -1,3 +1,4 @@
+from collections import Counter
 from collections.abc import Sequence
 from datetime import date, datetime, time
 
@@ -179,3 +180,8 @@ def test_since_before_the_data_starts_counts_the_whole_history() -> None:
     )
     a = queries.assess_commute(FakeQueries([], FOUR_MONDAYS), TTC_SUBWAY, query)
     assert a.risk.days_observed == 4
+
+
+def test_most_common_breaks_ties_alphabetically() -> None:
+    counts = Counter({"QUEEN AND BAY": 1, "KING AND BAY": 1, "UNION": 3})
+    assert queries.most_common(counts) == [("UNION", 3), ("KING AND BAY", 1), ("QUEEN AND BAY", 1)]

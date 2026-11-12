@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
-from signal_problems.application.queries import CauseCount
+from signal_problems.application.queries import CauseCount, most_common
 from signal_problems.domain.causes import CauseCategory, cause_for
 from signal_problems.domain.delays import SIGNIFICANT_DELAY_MINUTES
 from signal_problems.domain.surface import Mode, route_label
@@ -94,15 +94,20 @@ def route_profile(
     return RouteProfile(
         heat=_heat(route, facts),
         categories=dict(Counter(cause_for(f.cause_code, mode).category for f in significant)),
-        top_causes=[CauseCount(cause_for(code, mode), n) for code, n in causes.most_common(5)],
-        top_locations=Counter(f.location for f in significant if f.location).most_common(5),
+        top_causes=[CauseCount(cause_for(code, mode), n) for code, n in most_common(causes)],
+        top_locations=most_common(Counter(f.location for f in significant if f.location)),
         by_weekday_hour=grid,
     )
 
 
 def _name(spellings: dict[str, int]) -> str:
-    """Spellings vary ("504 KING", "504A KING"); the most common one names the route."""
-    return route_label(max(spellings, key=lambda name: (spellings[name], name)))
+    """Spellings vary ("504 KING", "504A KING"); the most common one names the route.
+
+    2014–2024 rows log only the number ("504"), so a spelling with a name wins over any count.
+    """
+    return route_label(
+        max(spellings, key=lambda name: (" " in name.strip(), spellings[name], name))
+    )
 
 
 def _heat(route: int, facts: Sequence[RouteFact]) -> RouteHeat:

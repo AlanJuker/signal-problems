@@ -41,7 +41,9 @@ def main(argv: list[str] | None = None) -> None:
         help="which delay log (default: subway)",
     )
     ingest.add_argument(
-        "--history", action="store_true", help="also import 2014–2024 (about 222,000 rows)"
+        "--history",
+        action="store_true",
+        help="also import 2014–2024 (rows: subway ~222,000, streetcar ~147,000, bus ~707,000)",
     )
     commands.add_parser("openapi", help="print the API's OpenAPI schema (the frontend contract)")
     commands.add_parser(
@@ -68,9 +70,6 @@ def main(argv: list[str] | None = None) -> None:
         print(json.dumps(schema, indent=2, ensure_ascii=False))
         return
 
-    if args.history and args.mode != "subway":
-        parser.error("--history is only available for the subway so far (#28)")
-
     engine = make_engine(DATABASE_URL)
     try:
         with httpx.Client(timeout=60) as client, Session(engine) as session:
@@ -84,11 +83,12 @@ def main(argv: list[str] | None = None) -> None:
                 text = format_report(IngestDelays(source, SqlDelayRepository(session), resolver)())
             else:
                 mode = Mode(args.mode)
-                package, current_log = SURFACE[mode]
                 source = (
                     CsvFileSource(args.csv)
                     if args.csv
-                    else TorontoOpenDataSource(client, package=package, current_log=current_log)
+                    else TorontoOpenDataSource(
+                        client, include_history=args.history, package=SURFACE[mode]
+                    )
                 )
                 repository = SqlSurfaceDelayRepository(session)
                 text = format_surface_report(IngestSurfaceDelays(source, repository, mode)())
@@ -128,6 +128,12 @@ def format_surface_report(report: SurfaceIngestReport) -> str:
         lines.append("Most common lines without a route number (skipped):")
         lines += [
             f"  {count:>4}  {line or '(empty)'}" for line, count in report.no_route.most_common(10)
+        ]
+    if report.uncategorized:
+        lines.append(f"Causes without a category (stored): {report.uncategorized.total():,}")
+        lines += [
+            f"  {count:>6,}  {code or '(empty)'}"
+            for code, count in report.uncategorized.most_common(10)
         ]
     return "\n".join(lines)
 
