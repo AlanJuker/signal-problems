@@ -124,6 +124,42 @@ describe("App", () => {
     expect(screen.queryByText("28%")).not.toBeInTheDocument(); // stale result cleared
   });
 
+  it("opens the streetcar route with the most delays, with labels for the street", async () => {
+    renderWithQueries(<App />);
+
+    const panel = await screen.findByRole("complementary", { name: "504 King" });
+    expect(within(panel).getByText("3,349")).toBeInTheDocument();
+    expect(within(panel).getByText("Vehicles & equipment")).toBeInTheDocument();
+    expect(within(panel).getByText("DUNDAS WEST STATION")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "504 King: 3,349 delays of 5+ minutes" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(window.location.search).toBe(""); // nothing chosen yet
+  });
+
+  it("switches to buses and keeps the chosen route in the URL", async () => {
+    const user = userEvent.setup();
+    renderWithQueries(<App />);
+    await user.click(await screen.findByRole("button", { name: /^501 Queen:/ }));
+    await screen.findByRole("complementary", { name: "501 Queen" });
+
+    await user.click(screen.getByRole("radio", { name: "Buses" }));
+    expect(await screen.findByRole("complementary", { name: "52 Lawrence West" })).toBeVisible();
+    expect(window.location.search).toBe("?mode=bus"); // the streetcar route is dropped
+
+    await user.selectOptions(screen.getByLabelText(/Any of the 2 routes/), "7 Bathurst");
+    expect(await screen.findByRole("complementary", { name: "7 Bathurst" })).toBeVisible();
+    expect(window.location.search).toBe("?mode=bus&route=7");
+  });
+
+  it("says so when a shared route has no delays in the period", async () => {
+    window.history.replaceState(null, "", "/?mode=bus&route=999");
+    renderWithQueries(<App />);
+    expect(
+      await screen.findByText("No delays logged on bus route 999 in this period."),
+    ).toBeInTheDocument();
+  });
+
   it("tells the user when the API is down", async () => {
     server.use(http.get("*/api/lines", () => HttpResponse.json({}, { status: 503 })));
     renderWithQueries(<App />);

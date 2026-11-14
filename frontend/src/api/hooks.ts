@@ -52,6 +52,26 @@ export function useStation(stationId: string | null, since: string | undefined) 
   });
 }
 
+export function useRoutes(mode: Schemas["Mode"], since: string | undefined) {
+  return useQuery({
+    queryKey: ["routes", mode, since],
+    queryFn: () => unwrap(api.GET("/routes", { params: { query: { mode, since } } })),
+  });
+}
+
+export function useRoute(mode: Schemas["Mode"], route: number | null, since: string | undefined) {
+  return useQuery({
+    queryKey: ["route", mode, route, since],
+    queryFn: () =>
+      unwrap(
+        api.GET("/routes/{mode}/{route}", {
+          params: { path: { mode, route: route! }, query: { since } },
+        }),
+      ),
+    enabled: route !== null,
+  });
+}
+
 export function useCommuteRisk() {
   return useMutation({
     mutationFn: (body: Schemas["CommuteRequest"]) => unwrap(api.POST("/commute/risk", { body })),

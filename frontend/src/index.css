@@ -85,7 +85,7 @@ a {
   color: var(--accent);
 }
 
-.period {
+.pills {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -94,13 +94,13 @@ a {
   padding: 0;
   border: 0;
 }
-.period legend {
+.pills legend {
   float: left;
   margin-right: 0.5rem;
   font-size: 0.85rem;
   color: var(--ink-soft);
 }
-.period label {
+.pills label {
   position: relative;
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--rule-strong);
@@ -108,16 +108,16 @@ a {
   font-size: 0.85rem;
   cursor: pointer;
 }
-.period input {
+.pills input {
   position: absolute;
   opacity: 0;
 }
-.period label:has(input:checked) {
+.pills label:has(input:checked) {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--surface);
 }
-.period label:has(input:focus-visible) {
+.pills label:has(input:focus-visible) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
