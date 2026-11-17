@@ -59,6 +59,14 @@ export function useRoutes(mode: Schemas["Mode"], since: string | undefined) {
   });
 }
 
+/** The days a mode's stored log spans, which can start later than the subway's. */
+export function useRouteCoverage(mode: Schemas["Mode"]) {
+  return useQuery({
+    queryKey: ["route-coverage", mode],
+    queryFn: () => unwrap(api.GET("/routes/coverage", { params: { query: { mode } } })),
+  });
+}
+
 export function useRoute(mode: Schemas["Mode"], route: number | null, since: string | undefined) {
   return useQuery({
     queryKey: ["route", mode, route, since],

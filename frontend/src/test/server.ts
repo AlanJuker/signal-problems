@@ -120,7 +120,7 @@ export const ROUTES: Record<Schemas["Mode"], Schemas["RouteOut"][]> = {
 
 const profile = (heat: Schemas["RouteOut"]): Schemas["RouteProfileOut"] => ({
   route: heat,
-  categories: { passengers_and_other: 30, equipment: 12 },
+  categories: { passengers_and_other: 30, equipment: 12, unknown: 4 },
   top_causes: [
     {
       code: "MTDV",
@@ -152,6 +152,9 @@ export const server = setupServer(
       : HttpResponse.json({ detail: "Unknown station" }, { status: 404 }),
   ),
   http.post("*/api/commute/risk", () => HttpResponse.json(COMMUTE)),
+  http.get("*/api/routes/coverage", () =>
+    HttpResponse.json({ first_day: "2025-01-01", last_day: "2026-08-31" }),
+  ),
   http.get("*/api/routes", ({ request }) => {
     const mode = new URL(request.url).searchParams.get("mode") as Schemas["Mode"];
     return HttpResponse.json(ROUTES[mode]);

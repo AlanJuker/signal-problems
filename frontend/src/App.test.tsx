@@ -130,6 +130,7 @@ describe("App", () => {
     const panel = await screen.findByRole("complementary", { name: "504 King" });
     expect(within(panel).getByText("3,349")).toBeInTheDocument();
     expect(within(panel).getByText("Vehicles & equipment")).toBeInTheDocument();
+    expect(within(panel).getByText("Not categorized")).toBeInTheDocument();
     expect(within(panel).getByText("DUNDAS WEST STATION")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "504 King: 3,349 delays of 5+ minutes" }),
@@ -150,6 +151,29 @@ describe("App", () => {
     await user.selectOptions(screen.getByLabelText(/Any of the 2 routes/), "7 Bathurst");
     expect(await screen.findByRole("complementary", { name: "7 Bathurst" })).toBeVisible();
     expect(window.location.search).toBe("?mode=bus&route=7");
+  });
+
+  it("says when a mode's log starts after the period does", async () => {
+    server.use(
+      http.get("*/api/summary", () =>
+        HttpResponse.json({
+          first_day: "2014-01-01",
+          last_day: "2026-08-31",
+          incidents: 262_422,
+          significant: 44_527,
+          signal_problems: 1_595,
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithQueries(<App />);
+    const note = /The streetcar log here starts in January 2025/;
+
+    await screen.findByRole("complementary", { name: "504 King" });
+    expect(screen.queryByText(note)).not.toBeInTheDocument(); // past 12 months: inside the log
+
+    await user.click(screen.getByRole("radio", { name: "Since 2014" }));
+    expect(await screen.findByText(note)).toBeInTheDocument();
   });
 
   it("says so when a shared route has no delays in the period", async () => {

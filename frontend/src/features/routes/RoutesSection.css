@@ -2,7 +2,7 @@
   margin-top: 2.5rem;
 }
 .routes > h2 {
-  margin: 0;
+  margin: 0 0 0.5rem;
   font-family: var(--font-display);
   font-size: 1.8rem;
 }
