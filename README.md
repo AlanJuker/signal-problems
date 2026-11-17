@@ -26,6 +26,12 @@ From the 45,475 incidents logged between January 2025 and August 2026:
 - **It's getting worse on that Friday trip:** across 2014–2026 it was hit on 77 of 661 Fridays (11.6%), less
   than half the recent rate. Over the whole history, signal failures account for 3.6% of the 44,189 delays of
   5+ minutes.
+- **Streetcars rarely wait on their own infrastructure either.** From January 2025 to September 2026, plant
+  codes (track, switches, overhead wires and other fixed equipment) cover 1.5% of 5+ minute streetcar delays
+  (289 of 18,766). Diversions (2,356),
+  unsanitary vehicles (2,328) and cars blocking the tracks, logged as "auto foul rail" (1,219), each caused more.
+- **The 501 Queen** logged 36,245 delays of 5+ minutes from 2014 to September 2026, the most of any streetcar or
+  bus route. The busiest bus route, 32 Eglinton West, logged 19,702.
 
 ## Why this is harder than it looks
 
@@ -177,8 +183,7 @@ docs/adr/            # architecture decision records
 - [x] Correct the model's hourly bias with its own recent errors: commute hours go from about 15% low to 6% low (#36)
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
 - [x] Choose the period every view is based on, kept in the URL
-- [x] Streetcar and bus delays since 2025, ranked by route in the API and the web app
-- [ ] Streetcar and bus history back to 2014 (#28)
+- [x] Streetcar and bus delays back to 2014, ranked by route in the API and the web app (#28)
 - [ ] Deployment
 
 ## Data
