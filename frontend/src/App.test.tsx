@@ -176,6 +176,20 @@ describe("App", () => {
     expect(await screen.findByText(note)).toBeInTheDocument();
   });
 
+  it("doesn't note a log that starts later in the same month", async () => {
+    server.use(
+      http.get("*/api/routes/coverage", () =>
+        HttpResponse.json({ first_day: "2025-01-02", last_day: "2026-08-31" }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderWithQueries(<App />); // the subway summary starts on 2025-01-01
+    await screen.findByRole("complementary", { name: "504 King" });
+    await user.click(screen.getByRole("radio", { name: "Since 2014" }));
+    await screen.findByRole("complementary", { name: "504 King" });
+    expect(screen.queryByText(/log here starts/)).not.toBeInTheDocument();
+  });
+
   it("says so when a shared route has no delays in the period", async () => {
     window.history.replaceState(null, "", "/?mode=bus&route=999");
     renderWithQueries(<App />);

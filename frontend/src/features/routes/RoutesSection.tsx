@@ -27,15 +27,17 @@ export function RoutesSection({ since }: { since: string | undefined }) {
   const mode: Mode = modeParam === "bus" ? "bus" : "streetcar";
   const routes = useRoutes(mode, since);
   const route = routeParam !== null ? Number(routeParam) : (routes.data?.[0]?.route ?? null);
-  // The period starts at `since`, or with the subway data when it's "all": say so if this log starts later
+  // The period starts at `since`, or with the subway data when it's "all". Say so if this log starts
+  // in a later month (the streetcar history starts on January 2, 2014, the subway's on January 1).
   const first = useRouteCoverage(mode).data?.first_day;
   const subwayFirst = useSummary().data?.first_day;
   const start = since ?? subwayFirst;
+  const startsLater = first && start && first.slice(0, 7) > start.slice(0, 7);
 
   return (
     <section className="routes" aria-labelledby="routes-title">
       <h2 id="routes-title">Streetcars and buses, by route</h2>
-      {first && start && first > start && (
+      {startsLater && (
         <p className="legend">
           The {mode} log here starts in {month.format(new Date(first))}, so this period begins
           there.
