@@ -256,6 +256,15 @@ class SqlRouteQueries:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def coverage(self, mode: Mode) -> tuple[date, date] | None:
+        record = SurfaceDelayRecord
+        first, last = self._session.execute(
+            select(func.min(record.occurred_at), func.max(record.occurred_at)).where(
+                record.mode == mode.value
+            )
+        ).one()
+        return (first.date(), last.date()) if first and last else None
+
     def totals(self, mode: Mode, since: date | None = None) -> list[RouteTotals]:
         record = SurfaceDelayRecord
         scope = [record.mode == mode.value]

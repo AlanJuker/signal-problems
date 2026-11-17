@@ -230,6 +230,45 @@
         }
       }
     },
+    "/routes/coverage": {
+      "get": {
+        "summary": "Get Route Coverage",
+        "description": "The days a mode's stored log spans: 2025 on, or 2014 on once its history is ingested.",
+        "operationId": "get_route_coverage_routes_coverage_get",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Mode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/routes/{mode}/{route}": {
       "get": {
         "summary": "Get Route",
@@ -521,6 +560,41 @@
           "departure"
         ],
         "title": "CommuteRequest"
+      },
+      "CoverageOut": {
+        "properties": {
+          "first_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Day",
+            "description": "Null when nothing of this mode is stored"
+          },
+          "last_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Day"
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_day",
+          "last_day"
+        ],
+        "title": "CoverageOut"
       },
       "HTTPValidationError": {
         "properties": {

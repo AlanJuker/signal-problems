@@ -69,3 +69,12 @@ def test_route_profile(client: TestClient) -> None:
 )
 def test_route_errors(client: TestClient, path: str, status: int) -> None:
     assert client.get(path).status_code == status
+
+
+def test_route_coverage(client: TestClient) -> None:
+    streetcar = client.get("/routes/coverage", params={"mode": "streetcar"}).json()
+    assert streetcar == {"first_day": "2025-01-01", "last_day": "2025-02-18"}
+    assert client.get("/routes/coverage", params={"mode": "bus"}).json() == {
+        "first_day": None,
+        "last_day": None,
+    }

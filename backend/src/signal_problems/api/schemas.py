@@ -35,6 +35,11 @@ class SummaryOut(BaseModel):
     signal_problems: int = Field(description="5+ minute delays caused by signal failures")
 
 
+class CoverageOut(BaseModel):
+    first_day: date | None = Field(description="Null when nothing of this mode is stored")
+    last_day: date | None
+
+
 class StationHeatOut(BaseModel):
     station: StationOut
     incidents: int

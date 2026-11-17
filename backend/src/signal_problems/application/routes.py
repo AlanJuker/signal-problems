@@ -48,6 +48,10 @@ class RouteQueries(Protocol):
         """Delays of one mode, optionally on one route and from a given day on."""
         ...
 
+    def coverage(self, mode: Mode) -> tuple[date, date] | None:
+        """First and last day with a delay of this mode, or None when none are stored."""
+        ...
+
 
 class RouteNotFoundError(LookupError):
     pass

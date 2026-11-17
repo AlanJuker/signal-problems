@@ -36,6 +36,10 @@ class FakeRouteQueries:
             and (since is None or f.occurred_at.date() >= since)
         ]
 
+    def coverage(self, mode: Mode) -> tuple[date, date] | None:
+        days = [f.occurred_at.date() for f in self._facts]
+        return (min(days), max(days)) if days else None
+
     def totals(self, mode: Mode, since: date | None = None) -> list[RouteTotals]:
         by_route: dict[int, list[RouteFact]] = {}
         for f in self.facts(mode, since=since):
