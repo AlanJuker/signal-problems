@@ -134,7 +134,7 @@ class RouteOut(BaseModel):
 
 
 class LocationCountOut(BaseModel):
-    location: str = Field(description="As logged, usually an intersection")
+    location: str = Field(description="Usually an intersection, as logged but in capitals")
     delays: int
 
 

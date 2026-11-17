@@ -649,7 +649,7 @@
           "location": {
             "type": "string",
             "title": "Location",
-            "description": "As logged, usually an intersection"
+            "description": "Usually an intersection, as logged but in capitals"
           },
           "delays": {
             "type": "integer",

@@ -71,7 +71,7 @@ class RouteProfile:
     heat: RouteHeat
     categories: dict[CauseCategory, int]  # 5+ minute delays by cause category
     top_causes: list[CauseCount]
-    top_locations: list[tuple[str, int]]  # where 5+ minute delays were logged, as written
+    top_locations: list[tuple[str, int]]  # where 5+ minute delays were logged, in capitals
     by_weekday_hour: list[list[int]]  # [weekday][hour] → 5+ minute delays
 
 
@@ -99,9 +99,14 @@ def route_profile(
         heat=_heat(route, facts),
         categories=dict(Counter(cause_for(f.cause_code, mode).category for f in significant)),
         top_causes=[CauseCount(cause_for(code, mode), n) for code, n in most_common(causes)],
-        top_locations=most_common(Counter(f.location for f in significant if f.location)),
+        top_locations=most_common(Counter(_place(f.location) for f in significant if f.location)),
         by_weekday_hour=grid,
     )
+
+
+def _place(location: str) -> str:
+    """Older rows say "Humber Loop", current ones "HUMBER LOOP": one place, in capitals."""
+    return " ".join(location.split()).upper()
 
 
 def _name(spellings: dict[str, int]) -> str:

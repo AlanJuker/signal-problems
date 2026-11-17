@@ -261,7 +261,7 @@ export interface components {
         LocationCountOut: {
             /**
              * Location
-             * @description As logged, usually an intersection
+             * @description Usually an intersection, as logged but in capitals
              */
             location: string;
             /** Delays */

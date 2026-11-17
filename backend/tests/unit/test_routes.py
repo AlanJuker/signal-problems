@@ -81,6 +81,16 @@ def test_a_named_spelling_beats_a_more_common_bare_number() -> None:
     assert routes.route_ranking(FakeRouteQueries(facts), Mode.STREETCAR)[0].name == "504 King"
 
 
+def test_locations_that_differ_only_in_case_are_one_place() -> None:
+    facts = [
+        fact(501, "501 QUEEN", location="HUMBER LOOP"),
+        fact(501, "501", location="Humber  Loop"),
+        fact(501, "501", location="Queen and Bay"),
+    ]
+    profile = routes.route_profile(FakeRouteQueries(facts), Mode.STREETCAR, 501)
+    assert profile.top_locations == [("HUMBER LOOP", 2), ("QUEEN AND BAY", 1)]
+
+
 def test_route_profile() -> None:
     facts = [
         fact(504, "504 KING", code="MTSAN", location="KING AND BAY"),
