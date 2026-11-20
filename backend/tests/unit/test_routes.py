@@ -36,6 +36,10 @@ class FakeRouteQueries:
             and (since is None or f.occurred_at.date() >= since)
         ]
 
+    def coverage(self, mode: Mode) -> tuple[date, date] | None:
+        days = [f.occurred_at.date() for f in self._facts]
+        return (min(days), max(days)) if days else None
+
     def totals(self, mode: Mode, since: date | None = None) -> list[RouteTotals]:
         by_route: dict[int, list[RouteFact]] = {}
         for f in self.facts(mode, since=since):
@@ -75,6 +79,16 @@ def test_ranking_puts_the_most_5_minute_delays_first() -> None:
 def test_a_named_spelling_beats_a_more_common_bare_number() -> None:
     facts = [fact(504, "504"), fact(504, "504"), fact(504, "504 KING")]  # 2014–2024 log the number
     assert routes.route_ranking(FakeRouteQueries(facts), Mode.STREETCAR)[0].name == "504 King"
+
+
+def test_locations_that_differ_only_in_case_are_one_place() -> None:
+    facts = [
+        fact(501, "501 QUEEN", location="HUMBER LOOP"),
+        fact(501, "501", location="Humber  Loop"),
+        fact(501, "501", location="Queen and Bay"),
+    ]
+    profile = routes.route_profile(FakeRouteQueries(facts), Mode.STREETCAR, 501)
+    assert profile.top_locations == [("HUMBER LOOP", 2), ("QUEEN AND BAY", 1)]
 
 
 def test_route_profile() -> None:

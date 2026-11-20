@@ -11,6 +11,7 @@ from signal_problems.api.schemas import (
     CauseOut,
     CommuteOut,
     CommuteRequest,
+    CoverageOut,
     LineOut,
     LocationCountOut,
     RouteOut,
@@ -109,6 +110,12 @@ def create_app(session_factory: Callable[[], Session]) -> FastAPI:
     def get_routes(mode: Mode, q: RouteQueries, since: Since = None) -> list[RouteOut]:
         """Streetcar or bus routes, the most 5+ minute delays first."""
         return [RouteOut.of(mode, h) for h in routes.route_ranking(q, mode, since)]
+
+    @app.get("/routes/coverage")
+    def get_route_coverage(mode: Mode, q: RouteQueries) -> CoverageOut:
+        """The days a mode's stored log spans: 2025 on, or 2014 on once its history is ingested."""
+        first, last = q.coverage(mode) or (None, None)
+        return CoverageOut(first_day=first, last_day=last)
 
     @app.get("/routes/{mode}/{route}", responses={404: {"description": "No delays on that route"}})
     def get_route(mode: Mode, route: int, q: RouteQueries, since: Since = None) -> RouteProfileOut:

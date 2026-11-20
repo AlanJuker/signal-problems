@@ -1,5 +1,5 @@
 import { ApiError, type Schemas } from "../../api/client";
-import { useRoute, useRoutes } from "../../api/hooks";
+import { useRoute, useRouteCoverage, useRoutes, useSummary } from "../../api/hooks";
 import { useSearchParam } from "../../useSearchParam";
 import { Breakdown } from "../Breakdown";
 import { CATEGORY_LABELS } from "../causes";
@@ -10,12 +10,15 @@ type Mode = Schemas["Mode"];
 const MODES: Record<Mode, string> = { streetcar: "Streetcars", bus: "Buses" };
 const TOP = 10;
 const number = new Intl.NumberFormat("en-CA");
+const month = new Intl.DateTimeFormat("en-CA", { month: "long", year: "numeric", timeZone: "UTC" });
 
-// On the street, equipment codes are the vehicle's, and plant codes are track, switches and overhead
+// On the street, equipment codes are the vehicle's, and plant codes are track, switches and overhead.
+// Unknown is mostly 2014–2024 incident words that no code settles ("Held By"), not missing codes.
 const LABELS = {
   ...CATEGORY_LABELS,
   equipment: "Vehicles & equipment",
   infrastructure: "Track, switches & overhead",
+  unknown: "Not categorized",
 };
 
 export function RoutesSection({ since }: { since: string | undefined }) {
@@ -24,13 +27,22 @@ export function RoutesSection({ since }: { since: string | undefined }) {
   const mode: Mode = modeParam === "bus" ? "bus" : "streetcar";
   const routes = useRoutes(mode, since);
   const route = routeParam !== null ? Number(routeParam) : (routes.data?.[0]?.route ?? null);
+  // The period starts at `since`, or with the subway data when it's "all". Say so if this log starts
+  // in a later month (the streetcar history starts on January 2, 2014, the subway's on January 1).
+  const first = useRouteCoverage(mode).data?.first_day;
+  const subwayFirst = useSummary().data?.first_day;
+  const start = since ?? subwayFirst;
+  const startsLater = first && start && first.slice(0, 7) > start.slice(0, 7);
 
   return (
     <section className="routes" aria-labelledby="routes-title">
       <h2 id="routes-title">Streetcars and buses, by route</h2>
-      <p className="legend">
-        The TTC's streetcar and bus logs start in January 2025, so longer periods begin there.
-      </p>
+      {startsLater && (
+        <p className="legend">
+          The {mode} log here starts in {month.format(new Date(first))}, so this period begins
+          there.
+        </p>
+      )}
       <fieldset className="pills">
         <legend className="visually-hidden">Mode</legend>
         {(Object.keys(MODES) as Mode[]).map((key) => (

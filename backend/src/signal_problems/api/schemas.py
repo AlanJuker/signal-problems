@@ -35,6 +35,11 @@ class SummaryOut(BaseModel):
     signal_problems: int = Field(description="5+ minute delays caused by signal failures")
 
 
+class CoverageOut(BaseModel):
+    first_day: date | None = Field(description="Null when nothing of this mode is stored")
+    last_day: date | None
+
+
 class StationHeatOut(BaseModel):
     station: StationOut
     incidents: int
@@ -129,7 +134,7 @@ class RouteOut(BaseModel):
 
 
 class LocationCountOut(BaseModel):
-    location: str = Field(description="As logged, usually an intersection")
+    location: str = Field(description="Usually an intersection, as logged but in capitals")
     delays: int
 
 

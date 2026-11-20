@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/routes/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Route Coverage
+         * @description The days a mode's stored log spans: 2025 on, or 2014 on once its history is ingested.
+         */
+        get: operations["get_route_coverage_routes_coverage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/routes/{mode}/{route}": {
         parameters: {
             query?: never;
@@ -208,6 +228,16 @@ export interface components {
              */
             since?: string | null;
         };
+        /** CoverageOut */
+        CoverageOut: {
+            /**
+             * First Day
+             * @description Null when nothing of this mode is stored
+             */
+            first_day: string | null;
+            /** Last Day */
+            last_day: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -231,7 +261,7 @@ export interface components {
         LocationCountOut: {
             /**
              * Location
-             * @description As logged, usually an intersection
+             * @description Usually an intersection, as logged but in capitals
              */
             location: string;
             /** Delays */
@@ -501,6 +531,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RouteOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_route_coverage_routes_coverage_get: {
+        parameters: {
+            query: {
+                mode: components["schemas"]["Mode"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageOut"];
                 };
             };
             /** @description Validation Error */
