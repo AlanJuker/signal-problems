@@ -173,3 +173,27 @@ Serve the third row. Its log loss gain is small (10 of 15 weeks happens by chanc
 commute hours the chance the commute check shows goes from about 15% low to about 6% low. The cost is the top
 tenth of cells running 9% high. #36 stays open, since whole trips are still outside ±5%.
 
+## The window's last minute (#36)
+
+Even fed each station's actual rate, combining cells landed 3% short of what happened, at every trip length.
+The cause was a minute. Delays are logged to the minute, and a trip counts as hit when one is logged anywhere
+from the window's first minute to its last, both included. The shares of each hour that the combination uses
+left the last minute out, so a window from 07:50 to 08:26 counted 36 minutes of chance against 37 of delays.
+Leaving that minute out of what happened, instead, drops it by 2.3%. The shares now count it.
+
+It's a fix, not a setting, so nothing was chosen on 2024. With data through 31 October 2026, on the 712 trips
+over the 669 test days:
+
+| Whole trips, predicted ÷ observed | All | Top tenth | 3 stations | 6 stations | 10 stations | Log loss ↓ |
+|---|---|---|---|---|---|---|
+| Actual rate per station and hour, before | 0.968 | | 0.929 | 0.965 | 0.981 | |
+| Actual rate per station and hour, now | 0.992 | | 0.958 | 0.991 | 1.003 | |
+| Corrected model, before | 0.936 | 0.947 | 0.906 | 0.935 | 0.946 | 0.16268 |
+| **Corrected model, now** | **0.959** | **0.969** | 0.934 | 0.960 | 0.966 | **0.16261** |
+
+### Decision
+
+The rule from #36 is met: whole trips are within ±5%, overall and in the top tenth, and the cell log loss
+(0.04794) is below 0.04829. The cells don't change, only how a trip combines them. #36 is closed. Short trips
+are still 7% low, and their windows are mostly part-hours, so spreading an hour's chance evenly across it is
+the next suspect.
