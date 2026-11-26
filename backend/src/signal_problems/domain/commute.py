@@ -41,11 +41,15 @@ class Trip:
         return moment.weekday() == self.weekday and start <= moment.time() <= end
 
     def hours_covered(self) -> list[tuple[int, float]]:
-        """Each hour of the day the window touches, with the share of that hour inside it."""
+        """Each hour of the day the window touches, with the share of that hour inside it.
+
+        Delays are logged to the minute and `affects` counts the window's last minute, so the
+        shares count it too: a window from 07:50 to 08:26 covers 37 minutes, not 36.
+        """
         start, end = self.window()
-        first, last = start.hour * 60 + start.minute, end.hour * 60 + end.minute
+        first, after = start.hour * 60 + start.minute, end.hour * 60 + end.minute + 1
         return [
-            (hour, (min(last, hour * 60 + 60) - max(first, hour * 60)) / 60)
+            (hour, (min(after, hour * 60 + 60) - max(first, hour * 60)) / 60)
             for hour in range(start.hour, end.hour + 1)
         ]
 
@@ -65,9 +69,9 @@ def chance_of_any(cells: Iterable[tuple[float, float]]) -> float:
     """Chance of at least one delay, from each cell's hourly probability and the share of that
     hour the trip spends in it, assuming delays are spread evenly within an hour.
 
-    ponytail: cells are treated as independent. On 712 trips over 2025–2026 that lands 3% short
-    of what happened, drifting up with trip length (docs/experiments/commute-model.md); a model of
-    whole trips would remove the assumption.
+    ponytail: cells are treated as independent. On 712 trips over 2025–2026, fed actual rates,
+    that lands 1% short of what happened and 4% short on 3-station trips
+    (docs/experiments/commute-model.md); a model of whole trips would remove the assumption.
     """
     none = 1.0
     for probability, share in cells:

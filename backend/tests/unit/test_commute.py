@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import pytest
 
@@ -75,8 +75,15 @@ def test_risk_share() -> None:
 
 
 def test_hours_covered_splits_the_window_by_hour() -> None:
-    # 6 min of travel: 07:50–08:26, the last 10 minutes of 7 a.m. and 26 minutes of 8 a.m.
-    assert trip(time(8, 5), destination="king").hours_covered() == [(7, 10 / 60), (8, 26 / 60)]
+    # 6 min of travel: 07:50–08:26, the last 10 minutes of 7 a.m. and 8:00 to 8:26 included
+    assert trip(time(8, 5), destination="king").hours_covered() == [(7, 10 / 60), (8, 27 / 60)]
+
+
+def test_hours_covered_counts_the_minutes_affects_counts() -> None:
+    t = trip(time(8, 5), destination="king")
+    start = datetime.combine(date(2026, 9, 7), time(7, 0))  # a Monday
+    minutes = sum(t.affects(start + timedelta(minutes=m)) for m in range(120))
+    assert sum(share for _, share in t.hours_covered()) * 60 == pytest.approx(minutes)
 
 
 def test_chance_of_any_combines_cells() -> None:
