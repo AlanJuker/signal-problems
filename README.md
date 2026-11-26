@@ -181,6 +181,7 @@ docs/adr/            # architecture decision records
 - [x] Serve the model's probability in the commute check, next to the frequency
 - [x] Check the combined chance on whole trips: combining cells holds up; the model's cells run low at peak hours (#36)
 - [x] Correct the model's hourly bias with its own recent errors: commute hours go from about 15% low to 6% low (#36)
+- [x] Count the window's last minute in the combined chance: whole trips go from 6% low to 4% low (#36)
 - [x] Historical data back to 2014: 268,000 rows, 99.7% resolved by the same resolver
 - [x] Choose the period every view is based on, kept in the URL
 - [x] Streetcar and bus delays back to 2014, ranked by route in the API and the web app (#28)
